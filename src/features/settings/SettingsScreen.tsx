@@ -1,13 +1,27 @@
 // FILE: src/features/settings/SettingsScreen.tsx
+// Updated: "hard logout" (global signOut + supabase storage cleanup + hard navigation)
 
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AppLayout from "../../app/AppLayout";
 import Card from "../../shared/ui/Card";
 import Button from "../../shared/ui/Button";
 import { useAuth } from "../auth/useAuth";
 import { repositories } from "../../app/repositories";
 import { supabase } from "../../app/supabaseClient";
-import { useNavigate } from "react-router-dom";
+
+function clearSupabaseStorage() {
+  try {
+    for (const k of Object.keys(localStorage)) {
+      if (k.toLowerCase().includes("supabase")) localStorage.removeItem(k);
+    }
+    for (const k of Object.keys(sessionStorage)) {
+      if (k.toLowerCase().includes("supabase")) sessionStorage.removeItem(k);
+    }
+  } catch {
+    // ignore
+  }
+}
 
 export default function SettingsScreen() {
   const auth = useAuth();
@@ -20,7 +34,10 @@ export default function SettingsScreen() {
   const [err, setErr] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const canSave = displayName.trim().length >= 2 && !busy && displayName.trim() !== (initialName ?? "").trim();
+  const canSave =
+    displayName.trim().length >= 2 &&
+    !busy &&
+    displayName.trim() !== (initialName ?? "").trim();
 
   async function save() {
     if (!canSave) return;
@@ -35,8 +52,6 @@ export default function SettingsScreen() {
 
       await auth.refresh();
       setSaved(true);
-
-      // hide saved state after a moment (no async background needed)
       window.setTimeout(() => setSaved(false), 1200);
     } catch (e: any) {
       setErr(String(e?.message ?? e ?? "Fehler"));
@@ -45,17 +60,30 @@ export default function SettingsScreen() {
     }
   }
 
-  async function logout() {
+  async function logoutHard() {
     if (busy) return;
     setBusy(true);
     setErr(null);
+
     try {
-      await supabase.auth.signOut();
-      nav("/auth", { replace: true });
-    } catch (e: any) {
-      setErr(String(e?.message ?? e ?? "Fehler"));
-      setBusy(false);
+      // 1) Kill session server-side too
+      await supabase.auth.signOut({ scope: "global" });
+    } catch {
+      // ignore
     }
+
+    // 2) Remove any cached tokens/state
+    clearSupabaseStorage();
+
+    // 3) Reset app auth state (best-effort)
+    try {
+      await auth.hardReset();
+    } catch {
+      // ignore
+    }
+
+    // 4) Hard navigate so everything re-inits cleanly
+    window.location.href = "/auth";
   }
 
   return (
@@ -69,7 +97,10 @@ export default function SettingsScreen() {
               Email: <b style={{ color: "var(--text)" }}>{auth.user?.email ?? "—"}</b>
             </div>
             <div style={{ color: "var(--muted)" }}>
-              User ID: <span style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>{auth.user?.id ?? "—"}</span>
+              User ID:{" "}
+              <span style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>
+                {auth.user?.id ?? "—"}
+              </span>
             </div>
             <div style={{ color: "var(--muted)" }}>
               Onboarding:{" "}
@@ -81,8 +112,8 @@ export default function SettingsScreen() {
             <Button onClick={() => nav("/onboarding")} disabled={busy}>
               Onboarding öffnen
             </Button>
-            <Button onClick={() => void logout()} disabled={busy}>
-              Logout
+            <Button onClick={() => void logoutHard()} disabled={busy}>
+              Logout (Hard)
             </Button>
           </div>
 

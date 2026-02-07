@@ -1,21 +1,26 @@
-// FILE: src/features/auth/oauth.ts
-// Small, centralized OAuth helper (scalable, providers configurable)
-
 import { supabase } from "../../app/supabaseClient";
 
 export type OAuthProvider = "google" | "apple";
 
 export async function signInWithProvider(provider: OAuthProvider) {
-  // Use a dedicated callback route; keeps auth flows consistent across providers
   const redirectTo = `${window.location.origin}/auth/callback`;
 
   const { error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
       redirectTo,
-      // You can request additional scopes later if needed:
-      // scopes: provider === "google" ? "email profile" : undefined,
-      // queryParams: provider === "google" ? { access_type: "offline", prompt: "consent" } : undefined,
+
+      // ✅ Force provider UI to show account chooser again
+      // Google supports prompt=select_account (and consent)
+      queryParams:
+        provider === "google"
+          ? {
+              prompt: "select_account",
+              // if you ever need refresh tokens, you'd add:
+              // access_type: "offline",
+              // but not necessary for normal login
+            }
+          : undefined,
     },
   });
 

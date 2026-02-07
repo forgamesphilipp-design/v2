@@ -1,13 +1,50 @@
-// FILE: src/features/auth/guards.tsx
-
 import type { ReactNode } from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "./useAuth";
 
 export function FullscreenLoading({ label = "Lade…" }: { label?: string }) {
+  const auth = useAuth();
+
   return (
-    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--bg)" }}>
-      <div style={{ color: "var(--muted)", fontWeight: 900 }}>{label}</div>
+    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--bg)", padding: 16 }}>
+      <div style={{ display: "grid", gap: 10, placeItems: "center" }}>
+        <div style={{ color: "var(--muted)", fontWeight: 900 }}>{label}</div>
+
+        <div style={{ fontSize: 12, color: "var(--muted)" }}>
+          sessionLoading: <b>{String(auth.sessionLoading)}</b> · profileLoading: <b>{String(auth.profileLoading)}</b>
+        </div>
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+          <button
+            onClick={() => void auth.refresh()}
+            style={{
+              borderRadius: 999,
+              padding: "10px 12px",
+              border: "1px solid var(--border)",
+              background: "var(--bg)",
+              cursor: "pointer",
+              fontWeight: 900,
+            }}
+          >
+            Refresh Auth
+          </button>
+
+          <button
+            onClick={() => void auth.hardReset()}
+            style={{
+              borderRadius: 999,
+              padding: "10px 12px",
+              border: "1px solid var(--border)",
+              background: "rgba(172, 0, 0, 0.92)",
+              color: "#fff",
+              cursor: "pointer",
+              fontWeight: 900,
+            }}
+          >
+            Hard Reset
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -15,7 +52,9 @@ export function FullscreenLoading({ label = "Lade…" }: { label?: string }) {
 export function RequireAuth({ children }: { children: ReactNode }) {
   const auth = useAuth();
 
-  if (auth.loading) return <FullscreenLoading />;
+  // ✅ Only block on session loading
+  if (auth.sessionLoading) return <FullscreenLoading />;
+
   if (!auth.isAuthed) return <Navigate to="/auth" replace />;
 
   return <>{children}</>;
@@ -24,34 +63,26 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 export function RequireNoAuth({ children }: { children: ReactNode }) {
   const auth = useAuth();
 
-  if (auth.loading) return <FullscreenLoading />;
+  if (auth.sessionLoading) return <FullscreenLoading />;
+
   if (auth.isAuthed) return <Navigate to="/" replace />;
 
   return <>{children}</>;
 }
 
-/**
- * Require that onboarding is complete.
- * - If authed but profile missing => still allow app (graceful)
- * - If profile exists and onboardedAt missing => redirect to onboarding
- */
 export function RequireOnboardingComplete({ children }: { children: ReactNode }) {
   const auth = useAuth();
-  const loc = useLocation();
 
-  if (auth.loading) return <FullscreenLoading />;
+  if (auth.sessionLoading) return <FullscreenLoading />;
 
-  // If not authed, auth guard should handle, but keep safe:
   if (!auth.isAuthed) return <Navigate to="/auth" replace />;
 
-  // If profile isn't loaded/available, don't block the whole app
-  // (but normally profile exists via trigger)
+  // ✅ Don't block the app if profile is missing/slow.
+  // If profile loads later and shows not onboarded, we can redirect then (next navigation),
+  // but we avoid deadlocks.
   if (!auth.profile) return <>{children}</>;
 
-  const done = Boolean(auth.profile.onboardedAt);
-  if (!done) {
-    return <Navigate to="/onboarding" replace state={{ from: loc.pathname }} />;
-  }
+  if (!auth.profile.onboardedAt) return <Navigate to="/onboarding" replace />;
 
   return <>{children}</>;
 }

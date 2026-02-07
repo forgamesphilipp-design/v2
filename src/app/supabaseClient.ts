@@ -13,5 +13,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+
+    // ✅ critical: makes OAuth callback consistent (?code=...) and avoids flaky hash-only callbacks
+    flowType: "pkce",
   },
 });
