@@ -1,67 +1,60 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+// FILE: src/app/router.tsx
+// Add /settings route inside the AuthedLayout block.
+// Replace entire file with this version (includes your simplified layout from earlier + settings).
+
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import HomePage from "../pages/HomePage";
 import ExplorePage from "../pages/ExplorePage";
 import LearnPage from "../pages/LearnPage";
 import QuizPage from "../pages/QuizPage";
 import AuthPage from "../pages/AuthPage";
-import { useAuth } from "../features/auth/useAuth";
+import OnboardingPage from "../pages/OnboardingPage";
+import SettingsPage from "../pages/SettingsPage";
+import { RequireAuth, RequireNoAuth, RequireOnboardingComplete } from "../features/auth/guards";
 
-function RequireAuth({ children }: { children: React.ReactNode }) {
-  const auth = useAuth();
-
-  if (auth.loading) {
-    return (
-      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--bg)" }}>
-        <div style={{ color: "var(--muted)", fontWeight: 900 }}>Lade…</div>
-      </div>
-    );
-  }
-
-  if (!auth.isAuthed) return <Navigate to="/auth" replace />;
-
-  return <>{children}</>;
+function AuthedLayout() {
+  return (
+    <RequireAuth>
+      <RequireOnboardingComplete>
+        <Outlet />
+      </RequireOnboardingComplete>
+    </RequireAuth>
+  );
 }
 
 export default function AppRouter() {
-  const auth = useAuth();
-
   return (
     <Routes>
-      <Route path="/auth" element={auth.isAuthed ? <Navigate to="/" replace /> : <AuthPage />} />
+      {/* Public */}
+      <Route
+        path="/auth"
+        element={
+          <RequireNoAuth>
+            <AuthPage />
+          </RequireNoAuth>
+        }
+      />
 
+      {/* Authed, onboarding allowed */}
       <Route
-        path="/"
+        path="/onboarding"
         element={
           <RequireAuth>
-            <HomePage />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/explore"
-        element={
-          <RequireAuth>
-            <ExplorePage />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/learn"
-        element={
-          <RequireAuth>
-            <LearnPage />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/quiz"
-        element={
-          <RequireAuth>
-            <QuizPage />
+            <OnboardingPage />
           </RequireAuth>
         }
       />
 
+      {/* App (authed + onboarded) */}
+      <Route element={<AuthedLayout />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/explore" element={<ExplorePage />} />
+        <Route path="/learn" element={<LearnPage />} />
+        <Route path="/quiz" element={<QuizPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+      </Route>
+
+      {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

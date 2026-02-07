@@ -1,3 +1,5 @@
+// FILE: src/features/auth/AuthStatus.tsx
+
 import { useNavigate } from "react-router-dom";
 import Button from "../../shared/ui/Button";
 import { supabase } from "../../app/supabaseClient";
@@ -8,11 +10,7 @@ export default function AuthStatus() {
   const auth = useAuth();
 
   if (auth.loading) {
-    return (
-      <div style={{ fontSize: 12, opacity: 0.9, display: "flex", alignItems: "center", gap: 10 }}>
-        Lade…
-      </div>
-    );
+    return <div style={{ fontSize: 12, opacity: 0.9, display: "flex", alignItems: "center", gap: 10 }}>Lade…</div>;
   }
 
   if (!auth.user) {
@@ -35,11 +33,11 @@ export default function AuthStatus() {
     nav("/auth", { replace: true });
   }
 
+  const name = auth.profile?.displayName?.trim() || auth.user.email || "eingeloggt";
+
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <div style={{ fontSize: 12, opacity: 0.95, fontWeight: 800 }}>
-        {auth.user.email ?? "eingeloggt"}
-      </div>
+      <div style={{ fontSize: 12, opacity: 0.95, fontWeight: 800 }}>{name}</div>
       <Button
         onClick={() => void logout()}
         style={{

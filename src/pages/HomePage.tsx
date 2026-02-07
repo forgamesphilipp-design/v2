@@ -1,3 +1,7 @@
+// FILE: src/pages/HomePage.tsx
+// Adds a Settings button (top right area) without changing your overall layout.
+// Replace entire file.
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Card from "../shared/ui/Card";
@@ -12,9 +16,15 @@ export default function HomePage() {
     <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 16 }}>
       <div style={{ width: "100%", maxWidth: 520, display: "grid", gap: 12 }}>
         <Card>
-          <div style={{ fontSize: 22, fontWeight: 900 }}>Orient App v2</div>
-          <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-            Clean start. Schritt für Schritt.
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: 10 }}>
+            <div>
+              <div style={{ fontSize: 22, fontWeight: 900 }}>Orient App v2</div>
+              <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
+                Clean start. Schritt für Schritt.
+              </div>
+            </div>
+
+            <Button onClick={() => nav("/settings")}>Settings</Button>
           </div>
 
           <div style={{ display: "grid", gap: 10, marginTop: 14 }}>

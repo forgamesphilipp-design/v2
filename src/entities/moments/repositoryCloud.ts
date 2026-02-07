@@ -1,11 +1,24 @@
+// FILE: src/entities/moments/repositoryCloud.ts
+// (Optional but recommended) Better error messages + defensive signed-url handling.
+// Replace entire file.
+
 import type { MomentsRepository, CreateMomentInput } from "./repository";
 import type { Moment } from "./model";
 import { supabase } from "../../app/supabaseClient";
 
+function prettySupabaseError(e: any): string {
+  const msg = String(e?.message ?? e ?? "Unknown error");
+  // common RLS hint
+  if (msg.toLowerCase().includes("row level security")) {
+    return "Zugriff verweigert (RLS). Bist du eingeloggt und gehört der Datensatz dir?";
+  }
+  return msg;
+}
+
 export class MomentsRepositoryCloud implements MomentsRepository {
   async list(): Promise<Moment[]> {
     const { data, error } = await supabase.from("moments").select("*").order("taken_at", { ascending: false });
-    if (error) throw error;
+    if (error) throw new Error(prettySupabaseError(error));
 
     const rows = data ?? [];
     const out = await Promise.all(rows.map((r) => this.mapRowAsync(r)));
@@ -20,7 +33,7 @@ export class MomentsRepositoryCloud implements MomentsRepository {
 
   async create(input: CreateMomentInput): Promise<Moment> {
     const { data: userRes, error: userErr } = await supabase.auth.getUser();
-    if (userErr) throw userErr;
+    if (userErr) throw new Error(prettySupabaseError(userErr));
 
     const uid = userRes.user?.id;
     if (!uid) throw new Error("Not authenticated");
@@ -34,25 +47,25 @@ export class MomentsRepositoryCloud implements MomentsRepository {
         lon: input.position.lon,
         lat: input.position.lat,
         accuracy_m: input.accuracyM,
-        // in DB: storage path
+        // DB: storage path
         photo_url: input.photoUrl,
         admin: input.admin,
       })
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) throw new Error(prettySupabaseError(error));
     return await this.mapRowAsync(data);
   }
 
   async remove(id: string): Promise<void> {
     const { error } = await supabase.from("moments").delete().eq("id", id);
-    if (error) throw error;
+    if (error) throw new Error(prettySupabaseError(error));
   }
 
   async clearAll(): Promise<void> {
     const { error } = await supabase.from("moments").delete().neq("id", "");
-    if (error) throw error;
+    if (error) throw new Error(prettySupabaseError(error));
   }
 
   private async signedUrlForPath(path: string | null | undefined): Promise<string> {
@@ -73,7 +86,7 @@ export class MomentsRepositoryCloud implements MomentsRepository {
       takenAt: row.taken_at,
       position: { lon: row.lon, lat: row.lat },
       accuracyM: row.accuracy_m,
-      // UI: signed URL (aus DB storage path)
+      // UI: signed URL (from DB storage path)
       photoUrl: signed,
       admin: row.admin,
     };
