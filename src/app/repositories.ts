@@ -2,8 +2,6 @@
 // Switch implementations ONLY here
 
 import { MomentsRepositoryCloud } from "../entities/moments/repositoryCloud";
-// import { MomentsRepositoryMemory } from "../entities/moments/repositoryMemory";
-
 import { createQuizRepositoryMemory } from "../entities/quiz/repositoryMemory";
 import { createGeoRepositoryMemory } from "../entities/geo/repositoryMemory";
 
