@@ -9,11 +9,14 @@ import type { Moment } from "../../entities/moments/model";
 import { useGeoNavigation } from "../navigation/useGeoNavigation";
 import MapPlaceholder from "./MapPlaceholder";
 import { appConfig } from "../../app/config";
-import { createMomentFromCamera } from "../moments/createMomentFromCamera";
+
+import { useMomentCameraFlow } from "../moments/useMomentCameraFlow";
+import MomentPhotoPreview from "../moments/MomentPhotoPreview";
 
 export default function ExploreScreen() {
   const [moments, setMoments] = useState<Moment[]>([]);
   const nav = useGeoNavigation("ch");
+  const camera = useMomentCameraFlow();
 
   const breadcrumbText = nav.breadcrumb.map((n) => n.name).join(" › ");
 
@@ -27,10 +30,10 @@ export default function ExploreScreen() {
     void refresh();
   }, []);
 
-  async function addFromCamera() {
-    await createMomentFromCamera();
-    await refresh();
-  }
+  // Nach Speichern / Abbrechen neu laden
+  useEffect(() => {
+    if (!camera.file) void refresh();
+  }, [camera.file]);
 
   return (
     <AppLayout title="Explore" subtitle="Domain-Test (später Karte/GPS)" backTo="/">
@@ -78,27 +81,36 @@ export default function ExploreScreen() {
 
         {appConfig.features.moments && (
           <>
-            <Card>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 10,
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 900 }}>Moments</div>
-                  <div style={{ marginTop: 4, color: "var(--muted)", fontSize: 13 }}>
-                    Kamera + Cloud Storage (noch ohne GPS/Admin)
+            {camera.file ? (
+              <MomentPhotoPreview
+                file={camera.file}
+                onCancel={camera.cancel}
+                onRetry={camera.retry}
+                onConfirm={camera.confirm}
+              />
+            ) : (
+              <Card>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 10,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 900 }}>Moments</div>
+                    <div style={{ marginTop: 4, color: "var(--muted)", fontSize: 13 }}>
+                      Native Kamera · Vorschau · Cloud
+                    </div>
                   </div>
-                </div>
 
-                <Button variant="primary" onClick={() => void addFromCamera()}>
-                  + Foto aufnehmen
-                </Button>
-              </div>
-            </Card>
+                  <Button variant="primary" onClick={camera.start} disabled={camera.busy}>
+                    + Foto aufnehmen
+                  </Button>
+                </div>
+              </Card>
+            )}
 
             <div style={{ display: "grid", gap: 10 }}>
               {moments.length === 0 ? (
