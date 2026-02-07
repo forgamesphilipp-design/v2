@@ -1,4 +1,5 @@
-// This is a temporary screen for testing the Moments + Navigation domains!
+// Temporary screen for testing the Moments + Navigation domains.
+// This screen will be cleaned up once Map/GPS + Cloud backend replace the demo parts.
 import { useEffect, useState } from "react";
 import AppLayout from "../../app/AppLayout";
 import Card from "../../shared/ui/Card";
@@ -8,10 +9,10 @@ import type { Moment } from "../../entities/moments/model";
 import { useGeoNavigation } from "../navigation/useGeoNavigation";
 import MapPlaceholder from "./MapPlaceholder";
 
-
 export default function ExploreScreen() {
   const [moments, setMoments] = useState<Moment[]>([]);
   const nav = useGeoNavigation("ch");
+
   const breadcrumbText = nav.breadcrumb.map((n) => n.name).join(" › ");
 
   async function refresh() {
@@ -42,7 +43,7 @@ export default function ExploreScreen() {
         <Card>
           <div style={{ fontWeight: 900 }}>Navigation (Demo)</div>
           <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-            Breadcrumb: {nav.breadcrumb.map((n) => n.name).join(" › ")}
+            Breadcrumb: {breadcrumbText}
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
@@ -60,7 +61,34 @@ export default function ExploreScreen() {
           </div>
         </Card>
 
-      <MapPlaceholder current={nav.current} breadcrumbText={breadcrumbText} />
+        {/* Phase 12: Minimaler Debug-Block, um sicher zu sehen, dass ensureChildren lädt */}
+        <Card>
+          <div style={{ fontWeight: 900 }}>Geo Children (Debug)</div>
+          <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
+            Current: <b>{nav.current.name}</b> · children: <b>{nav.children.length}</b>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
+            <Button variant="primary" onClick={() => void nav.ensureChildren()}>
+              Children laden
+            </Button>
+
+            {nav.children.slice(0, 8).map((c) => (
+              <Button key={c.id} onClick={() => void nav.goTo(c.id)}>
+                {c.name}
+              </Button>
+            ))}
+          </div>
+
+          {nav.children.length > 8 && (
+            <div style={{ marginTop: 8, color: "var(--muted)", fontSize: 12 }}>
+              … {nav.children.length - 8} weitere
+            </div>
+          )}
+        </Card>
+
+        {/* Phase 10: Map placeholder (bleibt bewusst simpel) */}
+        <MapPlaceholder current={nav.current} breadcrumbText={breadcrumbText} />
 
         <Card>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
@@ -97,14 +125,7 @@ export default function ExploreScreen() {
                   }}
                 />
                 <div style={{ minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontWeight: 900,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
+                  <div style={{ fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {m.title || "Moment"}
                   </div>
                   <div style={{ marginTop: 4, color: "var(--muted)", fontSize: 12 }}>

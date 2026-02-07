@@ -1,7 +1,14 @@
-import type { GeoRepository, GeoTree } from "./repository.ts";
+import type { GeoRepository, GeoTree } from "./repository";
 import type { GeoNode } from "./model";
 import type { GeoId, GeoLevel } from "./ids";
+import { isCantonId, isDistrictId } from "./ids";
+import { loadDistrictsGeo, loadCommunitiesGeo } from "./geoStore";
+import { buildDistrictNodesForCanton, buildCommunityNodesForParent } from "./builders";
 
+/**
+ * Base tree: Country + Cantons
+ * This stays small and static.
+ */
 const baseNodes: Record<string, GeoNode> = {
   ch: {
     id: "ch",
@@ -44,20 +51,69 @@ const baseNodes: Record<string, GeoNode> = {
 };
 
 export function createGeoRepositoryMemory(): GeoRepository {
-  const tree: GeoTree = { rootId: "ch", nodes: baseNodes };
+  // mutable in-memory tree (expanded on demand)
+  let nodes: Record<string, GeoNode> = { ...baseNodes };
+
+  async function ensureChildren(id: GeoId, level: GeoLevel) {
+    const node = nodes[String(id)];
+    if (!node) return;
+
+    // already loaded
+    if (node.childrenIds.length > 0) return;
+
+    // Canton → Districts (or Communities if no districts exist)
+    if (level === "canton" && isCantonId(String(id))) {
+      const districtsGeo = await loadDistrictsGeo();
+      const { districtNodes, districtIds } =
+        buildDistrictNodesForCanton(districtsGeo, String(id));
+
+      if (districtIds.length === 0) {
+        // no districts → load communities directly
+        const communitiesGeo = await loadCommunitiesGeo();
+        const { communityNodes, communityIds } =
+          buildCommunityNodesForParent(communitiesGeo, String(id));
+
+        nodes = {
+          ...nodes,
+          ...communityNodes,
+          [String(id)]: { ...node, childrenIds: communityIds },
+        };
+        return;
+      }
+
+      nodes = {
+        ...nodes,
+        ...districtNodes,
+        [String(id)]: { ...node, childrenIds: districtIds },
+      };
+      return;
+    }
+
+    // District → Communities
+    if (level === "district" && isDistrictId(String(id))) {
+      const communitiesGeo = await loadCommunitiesGeo();
+      const { communityNodes, communityIds } =
+        buildCommunityNodesForParent(communitiesGeo, String(id));
+
+      nodes = {
+        ...nodes,
+        ...communityNodes,
+        [String(id)]: { ...node, childrenIds: communityIds },
+      };
+    }
+  }
 
   return {
-    async getTree() {
-      return tree;
-    },
-
-    async ensureChildren(_id: GeoId, _level: GeoLevel) {
-      // später: districts/communities nachladen
-      return;
+    async getTree(): Promise<GeoTree> {
+      return { rootId: "ch", nodes };
     },
 
     async getNode(id: GeoId) {
-      return tree.nodes[String(id)] ?? null;
+      return nodes[String(id)] ?? null;
+    },
+
+    async ensureChildren(id: GeoId, level: GeoLevel) {
+      return ensureChildren(id, level);
     },
   };
 }
