@@ -1,10 +1,10 @@
 // FILE: src/pages/AuthPage.tsx
-// Step 5 (fixed TS2367) + debug panel (dev-friendly, safe)
-// - separates "busy" from "status" to avoid impossible comparisons
-// - adds a small debug block showing state + last error (no secrets)
+// OAuth buttons added + existing magic-link flow preserved.
+// (Includes your busy/status fix + debug block.)
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../app/supabaseClient";
+import { signInWithProvider } from "../features/auth/oauth";
 
 type Status = "idle" | "sent" | "error";
 
@@ -19,15 +19,11 @@ export default function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  // resend cooldown (UI only; server still enforces its own limits)
+  // resend cooldown (UI only)
   const [cooldownS, setCooldownS] = useState(0);
   const intervalRef = useRef<number | null>(null);
 
   const canSend = useMemo(() => isValidEmail(email), [email]);
-  const canResend = useMemo(
-    () => status === "sent" && cooldownS === 0 && canSend && !busy,
-    [status, cooldownS, canSend, busy]
-  );
 
   function startCooldown(seconds: number) {
     setCooldownS(seconds);
@@ -61,7 +57,7 @@ export default function AuthPage() {
     setBusy(true);
 
     try {
-      const redirectTo = window.location.origin; // important for Mobile/Vercel
+      const redirectTo = window.location.origin;
       const { error } = await supabase.auth.signInWithOtp({
         email: e,
         options: {
@@ -73,11 +69,25 @@ export default function AuthPage() {
       if (error) throw error;
 
       setStatus("sent");
-      startCooldown(30); // UI cooldown
+      startCooldown(30);
     } catch (e: any) {
       setErr(String(e?.message ?? e ?? "Fehler"));
       setStatus("error");
     } finally {
+      setBusy(false);
+    }
+  }
+
+  async function oauth(provider: "google" | "apple") {
+    if (busy) return;
+    setErr(null);
+    setBusy(true);
+    try {
+      await signInWithProvider(provider);
+      // note: signInWithOAuth redirects away; code below won't run
+    } catch (e: any) {
+      setErr(String(e?.message ?? e ?? "Fehler"));
+      setStatus("error");
       setBusy(false);
     }
   }
@@ -92,11 +102,9 @@ export default function AuthPage() {
   }
 
   const hint = useMemo(() => {
-    if (status === "sent") {
-      return "✅ Link gesendet. Öffne deine Email und klicke den Login-Link. (Spam prüfen)";
-    }
+    if (status === "sent") return "✅ Link gesendet. Öffne deine Email und klicke den Login-Link. (Spam prüfen)";
     if (status === "error" && err) return `Fehler: ${err}`;
-    return "Du bekommst einen Login-Link per Email (Magic Link).";
+    return "Login via Magic Link oder Social Login.";
   }, [status, err]);
 
   const buttonLabel = useMemo(() => {
@@ -114,7 +122,6 @@ export default function AuthPage() {
 
   const showResend = status === "sent";
 
-  // Debug: show only on localhost OR if you flip this constant
   const DEBUG = useMemo(() => {
     const host = typeof window !== "undefined" ? window.location.hostname : "";
     return host === "localhost" || host === "127.0.0.1";
@@ -144,6 +151,51 @@ export default function AuthPage() {
           <div style={{ fontSize: 20, fontWeight: 900 }}>Login</div>
           <div style={{ marginTop: 6, fontSize: 13, color: "var(--muted)", lineHeight: 1.35 }}>{hint}</div>
 
+          {/* OAuth buttons */}
+          <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+            <button
+              onClick={() => void oauth("google")}
+              disabled={busy}
+              style={{
+                borderRadius: 999,
+                padding: "10px 12px",
+                border: "1px solid var(--border)",
+                background: "#fff",
+                color: "var(--text)",
+                cursor: busy ? "not-allowed" : "pointer",
+                fontWeight: 900,
+                boxShadow: "0 10px 22px rgba(15,23,42,.08)",
+              }}
+            >
+              Weiter mit Google
+            </button>
+
+            <button
+              onClick={() => void oauth("apple")}
+              disabled={busy}
+              style={{
+                borderRadius: 999,
+                padding: "10px 12px",
+                border: "1px solid var(--border)",
+                background: "#0B1220",
+                color: "#fff",
+                cursor: busy ? "not-allowed" : "pointer",
+                fontWeight: 900,
+                boxShadow: "0 10px 22px rgba(15,23,42,.12)",
+              }}
+            >
+              Weiter mit Apple
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ height: 1, flex: 1, background: "var(--border)" }} />
+            <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 900 }}>oder</div>
+            <div style={{ height: 1, flex: 1, background: "var(--border)" }} />
+          </div>
+
+          {/* Magic link */}
           <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
             <div style={{ fontSize: 12, fontWeight: 900, color: "var(--muted)" }}>Email</div>
 
@@ -216,12 +268,6 @@ export default function AuthPage() {
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: 8 }}>
-          <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.4 }}>
-            Sicherheit: Der Login-Link ist nur kurz gültig. Wenn er abläuft, einfach erneut senden.
-          </div>
-        </div>
-
         {DEBUG && (
           <div
             style={{
@@ -237,9 +283,6 @@ export default function AuthPage() {
             <div style={{ marginTop: 6, display: "grid", gap: 4 }}>
               <div>
                 status: <b>{status}</b> · busy: <b>{String(busy)}</b>
-              </div>
-              <div>
-                email valid: <b>{String(canSend)}</b> · canResend: <b>{String(canResend)}</b>
               </div>
               <div>
                 cooldownS: <b>{cooldownS}</b>

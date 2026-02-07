@@ -1,6 +1,5 @@
 // FILE: src/app/router.tsx
-// Add /settings route inside the AuthedLayout block.
-// Replace entire file with this version (includes your simplified layout from earlier + settings).
+// Adds /auth/callback route (public) that finalizes OAuth login.
 
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import HomePage from "../pages/HomePage";
@@ -10,6 +9,7 @@ import QuizPage from "../pages/QuizPage";
 import AuthPage from "../pages/AuthPage";
 import OnboardingPage from "../pages/OnboardingPage";
 import SettingsPage from "../pages/SettingsPage";
+import AuthCallbackPage from "../pages/AuthCallbackPage";
 import { RequireAuth, RequireNoAuth, RequireOnboardingComplete } from "../features/auth/guards";
 
 function AuthedLayout() {
@@ -34,6 +34,9 @@ export default function AppRouter() {
           </RequireNoAuth>
         }
       />
+
+      {/* OAuth callback (public) */}
+      <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
       {/* Authed, onboarding allowed */}
       <Route
