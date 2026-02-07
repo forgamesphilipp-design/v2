@@ -1,10 +1,18 @@
-import type { Moment, MomentId } from "./model";
+import type { Moment, MomentAdmin, LonLat } from "./model";
 
-export type CreateMomentInput = Omit<Moment, "id">;
+export type CreateMomentInput = {
+  title: string;
+  takenAt: string; // ISO
+  position: LonLat;
+  accuracyM: number | null;
+  photoUrl: string;
+  admin: MomentAdmin;
+};
 
-export interface MomentsRepository {
+export type MomentsRepository = {
   list(): Promise<Moment[]>;
-  get(id: MomentId): Promise<Moment | null>;
+  get(id: string): Promise<Moment | null>;
   create(input: CreateMomentInput): Promise<Moment>;
-  remove(id: MomentId): Promise<void>;
-}
+  remove(id: string): Promise<void>;
+  clearAll(): Promise<void>;
+};

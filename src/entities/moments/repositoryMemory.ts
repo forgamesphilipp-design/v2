@@ -1,27 +1,45 @@
 import type { CreateMomentInput, MomentsRepository } from "./repository";
-import type { Moment, MomentId } from "./model";
+import type { Moment } from "./model";
 
-function uid(): MomentId {
+function makeId() {
+  // works in modern browsers; fallback for older environments
+  const anyCrypto = globalThis.crypto as any;
+  if (anyCrypto?.randomUUID) return anyCrypto.randomUUID();
   return `m_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
-export function createMomentsRepositoryMemory(): MomentsRepository {
-  let items: Moment[] = [];
+export class MomentsRepositoryMemory implements MomentsRepository {
+  private items: Moment[] = [];
 
-  return {
-    async list() {
-      return items.slice().sort((a, b) => (a.takenAt < b.takenAt ? 1 : -1));
-    },
-    async get(id) {
-      return items.find((m) => m.id === id) ?? null;
-    },
-    async create(input: CreateMomentInput) {
-      const m: Moment = { ...input, id: uid() };
-      items = [m, ...items];
-      return m;
-    },
-    async remove(id: MomentId) {
-      items = items.filter((m) => m.id !== id);
-    },
-  };
+  async list(): Promise<Moment[]> {
+    // newest first
+    return [...this.items].sort((a, b) => b.takenAt.localeCompare(a.takenAt));
+  }
+
+  async get(id: string): Promise<Moment | null> {
+    return this.items.find((m) => m.id === id) ?? null;
+  }
+
+  async create(input: CreateMomentInput): Promise<Moment> {
+    const next: Moment = {
+      id: makeId(),
+      title: String(input.title ?? "").trim(),
+      takenAt: input.takenAt,
+      position: input.position,
+      accuracyM: input.accuracyM ?? null,
+      photoUrl: input.photoUrl,
+      admin: input.admin,
+    };
+
+    this.items = [next, ...this.items];
+    return next;
+  }
+
+  async remove(id: string): Promise<void> {
+    this.items = this.items.filter((m) => m.id !== id);
+  }
+
+  async clearAll(): Promise<void> {
+    this.items = [];
+  }
 }

@@ -1,23 +1,31 @@
-export type MomentId = string;
+export type LonLat = {
+  lon: number;
+  lat: number;
+};
 
-export type LonLat = { lon: number; lat: number };
+export type AdminRef = {
+  id: string;
+  name: string;
+};
 
 export type MomentAdmin = {
-  canton?: { id: string; name: string } | null;
-  district?: { id: string; name: string } | null;
-  community?: { id: string; name: string } | null;
+  canton: AdminRef | null;
+  district: AdminRef | null;
+  community: AdminRef | null;
 };
 
 export type Moment = {
-  id: MomentId;
-  title: string;
+  id: string;
 
-  takenAt: string; // ISO (new Date().toISOString())
+  title: string; // optional label
+  takenAt: string; // ISO string
+
   position: LonLat;
   accuracyM: number | null;
 
-  // später Cloud: URL ins Storage (nicht dataUrl)
+  // later: real cloud storage URL
   photoUrl: string;
 
+  // resolved mapping at creation time
   admin: MomentAdmin;
 };
