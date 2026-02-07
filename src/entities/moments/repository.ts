@@ -5,7 +5,11 @@ export type CreateMomentInput = {
   takenAt: string; // ISO
   position: LonLat;
   accuracyM: number | null;
+
+  // DB: storage path (private bucket)
+  // UI: signed URL kommt aus repositoryCloud.list/get
   photoUrl: string;
+
   admin: MomentAdmin;
 };
 

@@ -23,7 +23,9 @@ export type Moment = {
   position: LonLat;
   accuracyM: number | null;
 
-  // later: real cloud storage URL
+  // IMPORTANT:
+  // In DB speichern wir einen STORAGE-PFAD (private bucket).
+  // In der UI liefern wir eine SIGNED URL zurück.
   photoUrl: string;
 
   // resolved mapping at creation time

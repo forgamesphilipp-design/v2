@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Container from "../shared/ui/Container";
 import HeaderBar from "../shared/ui/HeaderBar";
+import AuthStatus from "../features/auth/AuthStatus";
 
 type Props = {
   title: string;
@@ -13,7 +14,7 @@ type Props = {
 export default function AppLayout({ title, subtitle, backTo, right, children }: Props) {
   return (
     <div style={{ minHeight: "100%" }}>
-      <HeaderBar title={title} subtitle={subtitle} backTo={backTo} right={right} />
+      <HeaderBar title={title} subtitle={subtitle} backTo={backTo} right={right ?? <AuthStatus />} />
       <main>
         <Container>{children}</Container>
       </main>

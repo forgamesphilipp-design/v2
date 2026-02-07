@@ -32,8 +32,8 @@ export default function ExploreScreen() {
 
   // Nach Speichern / Abbrechen neu laden
   useEffect(() => {
-    if (!camera.file) void refresh();
-  }, [camera.file]);
+    if (!camera.file && !camera.busy) void refresh();
+  }, [camera.file, camera.busy]);
 
   return (
     <AppLayout title="Explore" subtitle="Domain-Test (später Karte/GPS)" backTo="/">
@@ -84,6 +84,8 @@ export default function ExploreScreen() {
             {camera.file ? (
               <MomentPhotoPreview
                 file={camera.file}
+                busy={camera.busy}
+                error={camera.error}
                 onCancel={camera.cancel}
                 onRetry={camera.retry}
                 onConfirm={camera.confirm}
@@ -101,7 +103,7 @@ export default function ExploreScreen() {
                   <div>
                     <div style={{ fontWeight: 900 }}>Moments</div>
                     <div style={{ marginTop: 4, color: "var(--muted)", fontSize: 13 }}>
-                      Native Kamera · Vorschau · Cloud
+                      Native Kamera · Vorschau · Private Storage (Signed URLs)
                     </div>
                   </div>
 
@@ -121,7 +123,7 @@ export default function ExploreScreen() {
                 moments.map((m) => (
                   <Card key={m.id} style={{ display: "flex", gap: 12, alignItems: "center" }}>
                     <img
-                      src={m.photoUrl}
+                      src={m.photoUrl || "https://via.placeholder.com/600x400?text=No+Access"}
                       alt=""
                       style={{
                         width: 88,
