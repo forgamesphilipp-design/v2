@@ -57,32 +57,23 @@ export default function ExploreScreen() {
           </div>
 
           <div style={{ marginTop: 10, color: "var(--muted)", fontSize: 12 }}>
-            Current: <b>{nav.current.id}</b> · Level: <b>{nav.current.level}</b>
-          </div>
-        </Card>
-
-        {/* Phase 12: Minimaler Debug-Block, um sicher zu sehen, dass ensureChildren lädt */}
-        <Card>
-          <div style={{ fontWeight: 900 }}>Geo Children (Debug)</div>
-          <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-            Current: <b>{nav.current.name}</b> · children: <b>{nav.children.length}</b>
+            Current: <b>{nav.current.name}</b> · Level: <b>{nav.current.level}</b> · Children:{" "}
+            <b>{nav.children.length}</b>
           </div>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
-            <Button variant="primary" onClick={() => void nav.ensureChildren()}>
-              Children laden
-            </Button>
-
-            {nav.children.slice(0, 8).map((c) => (
-              <Button key={c.id} onClick={() => void nav.goTo(c.id)}>
-                {c.name}
-              </Button>
-            ))}
-          </div>
-
-          {nav.children.length > 8 && (
-            <div style={{ marginTop: 8, color: "var(--muted)", fontSize: 12 }}>
-              … {nav.children.length - 8} weitere
+          {/* Mini child links (keine Debug-UI mehr, nur dezente Hilfe) */}
+          {nav.children.length > 0 && (
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
+              {nav.children.slice(0, 6).map((c) => (
+                <Button key={c.id} onClick={() => void nav.goTo(c.id)}>
+                  {c.name}
+                </Button>
+              ))}
+              {nav.children.length > 6 && (
+                <div style={{ alignSelf: "center", fontSize: 12, color: "var(--muted)" }}>
+                  … {nav.children.length - 6} weitere
+                </div>
+              )}
             </div>
           )}
         </Card>
