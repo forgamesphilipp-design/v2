@@ -1,14 +1,15 @@
+import AppLayout from "../app/AppLayout";
 import Card from "../shared/ui/Card";
 
 export default function QuizPage() {
   return (
-    <div style={{ padding: 16, maxWidth: 960, margin: "0 auto" }}>
+    <AppLayout title="Quiz" subtitle="Modi + Runner (später)" backTo="/">
       <Card>
-        <div style={{ fontSize: 18, fontWeight: 900 }}>Quiz</div>
+        <div style={{ fontWeight: 900 }}>Quiz</div>
         <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-          Kommt später: Modus-Auswahl + Runner.
+          Platzhalter. Hier kommen später Modus-Auswahl und Quiz-Runner rein.
         </div>
       </Card>
-    </div>
+    </AppLayout>
   );
 }
