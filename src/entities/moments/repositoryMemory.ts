@@ -1,3 +1,5 @@
+// This file is currently not used!
+
 import type { CreateMomentInput, MomentsRepository } from "./repository";
 import type { Moment } from "./model";
 

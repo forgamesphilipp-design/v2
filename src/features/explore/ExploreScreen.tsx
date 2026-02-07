@@ -9,6 +9,7 @@ import type { Moment } from "../../entities/moments/model";
 import { useGeoNavigation } from "../navigation/useGeoNavigation";
 import MapPlaceholder from "./MapPlaceholder";
 import { appConfig } from "../../app/config";
+import { createMomentFromCamera } from "../moments/createMomentFromCamera";
 
 export default function ExploreScreen() {
   const [moments, setMoments] = useState<Moment[]>([]);
@@ -26,16 +27,8 @@ export default function ExploreScreen() {
     void refresh();
   }, []);
 
-  async function addFake() {
-    await repositories.moments.create({
-      title: `Test ${moments.length + 1}`,
-      takenAt: new Date().toISOString(),
-      position: { lon: 8.54, lat: 47.37 },
-      accuracyM: 10,
-      photoUrl: "https://via.placeholder.com/600x400?text=Moment",
-      admin: { canton: { id: "1", name: "Zürich" }, district: null, community: null },
-    });
-
+  async function addFromCamera() {
+    await createMomentFromCamera();
     await refresh();
   }
 
@@ -86,16 +79,23 @@ export default function ExploreScreen() {
         {appConfig.features.moments && (
           <>
             <Card>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 10,
+                }}
+              >
                 <div>
-                  <div style={{ fontWeight: 900 }}>Moments (Demo)</div>
+                  <div style={{ fontWeight: 900 }}>Moments</div>
                   <div style={{ marginTop: 4, color: "var(--muted)", fontSize: 13 }}>
-                    Noch ohne Backend. Nur um die Struktur zu verstehen.
+                    Kamera + Cloud Storage (noch ohne GPS/Admin)
                   </div>
                 </div>
 
-                <Button variant="primary" onClick={() => void addFake()}>
-                  + Fake Moment
+                <Button variant="primary" onClick={() => void addFromCamera()}>
+                  + Foto aufnehmen
                 </Button>
               </div>
             </Card>
@@ -131,7 +131,7 @@ export default function ExploreScreen() {
                         {m.title || "Moment"}
                       </div>
                       <div style={{ marginTop: 4, color: "var(--muted)", fontSize: 12 }}>
-                        {new Date(m.takenAt).toLocaleString("de-CH")} · {m.admin?.canton?.name ?? "—"}
+                        {new Date(m.takenAt).toLocaleString("de-CH")}
                       </div>
                     </div>
                   </Card>

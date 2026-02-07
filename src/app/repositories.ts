@@ -1,10 +1,15 @@
-// This file is (also) for SUPABASE, Moments Cloud storage
-import { MomentsRepositoryMemory } from "../entities/moments/repositoryMemory";
+// Composition root for repositories
+// Switch implementations ONLY here
+
+import { MomentsRepositoryCloud } from "../entities/moments/repositoryCloud";
+// import { MomentsRepositoryMemory } from "../entities/moments/repositoryMemory";
+
 import { createQuizRepositoryMemory } from "../entities/quiz/repositoryMemory";
 import { createGeoRepositoryMemory } from "../entities/geo/repositoryMemory";
 
 export const repositories = {
-  moments: new MomentsRepositoryMemory(),
+  // ✅ Cloud is now the source of truth
+  moments: new MomentsRepositoryCloud(),
   quiz: createQuizRepositoryMemory(),
   geo: createGeoRepositoryMemory(),
 };
