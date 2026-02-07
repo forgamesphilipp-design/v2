@@ -1,13 +1,18 @@
-// This is a temporary screen for testing the Moments domain! 
+// This is a temporary screen for testing the Moments + Navigation domains!
 import { useEffect, useState } from "react";
 import AppLayout from "../../app/AppLayout";
 import Card from "../../shared/ui/Card";
 import Button from "../../shared/ui/Button";
 import { repositories } from "../../app/repositories";
 import type { Moment } from "../../entities/moments/model";
+import { useGeoNavigation } from "../navigation/useGeoNavigation";
+import MapPlaceholder from "./MapPlaceholder";
+
 
 export default function ExploreScreen() {
   const [moments, setMoments] = useState<Moment[]>([]);
+  const nav = useGeoNavigation("ch");
+  const breadcrumbText = nav.breadcrumb.map((n) => n.name).join(" › ");
 
   async function refresh() {
     const list = await repositories.moments.list();
@@ -24,7 +29,7 @@ export default function ExploreScreen() {
       takenAt: new Date().toISOString(),
       position: { lon: 8.54, lat: 47.37 },
       accuracyM: 10,
-      photoUrl: "https://via.placeholder.com/600x400?text=Moment", // später echter Storage-Link
+      photoUrl: "https://via.placeholder.com/600x400?text=Moment",
       admin: { canton: { id: "1", name: "Zürich" }, district: null, community: null },
     });
 
@@ -35,6 +40,29 @@ export default function ExploreScreen() {
     <AppLayout title="Explore" subtitle="Domain-Test (später Karte/GPS)" backTo="/">
       <div style={{ display: "grid", gap: 12 }}>
         <Card>
+          <div style={{ fontWeight: 900 }}>Navigation (Demo)</div>
+          <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
+            Breadcrumb: {nav.breadcrumb.map((n) => n.name).join(" › ")}
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
+            <Button onClick={() => void nav.goBack()} disabled={!nav.canGoBack}>
+              ← Zurück
+            </Button>
+
+            <Button onClick={() => void nav.goTo("1")}>Zürich</Button>
+            <Button onClick={() => void nav.goTo("2")}>Bern</Button>
+            <Button onClick={() => void nav.goTo("ch")}>Schweiz</Button>
+          </div>
+
+          <div style={{ marginTop: 10, color: "var(--muted)", fontSize: 12 }}>
+            Current: <b>{nav.current.id}</b> · Level: <b>{nav.current.level}</b>
+          </div>
+        </Card>
+
+      <MapPlaceholder current={nav.current} breadcrumbText={breadcrumbText} />
+
+        <Card>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
             <div>
               <div style={{ fontWeight: 900 }}>Moments (Demo)</div>
@@ -43,7 +71,7 @@ export default function ExploreScreen() {
               </div>
             </div>
 
-            <Button variant="primary" onClick={addFake}>
+            <Button variant="primary" onClick={() => void addFake()}>
               + Fake Moment
             </Button>
           </div>
@@ -60,10 +88,23 @@ export default function ExploreScreen() {
                 <img
                   src={m.photoUrl}
                   alt=""
-                  style={{ width: 88, height: 60, objectFit: "cover", borderRadius: 12, border: "1px solid var(--border)" }}
+                  style={{
+                    width: 88,
+                    height: 60,
+                    objectFit: "cover",
+                    borderRadius: 12,
+                    border: "1px solid var(--border)",
+                  }}
                 />
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <div
+                    style={{
+                      fontWeight: 900,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
                     {m.title || "Moment"}
                   </div>
                   <div style={{ marginTop: 4, color: "var(--muted)", fontSize: 12 }}>
