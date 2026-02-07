@@ -15,7 +15,6 @@ type UseGeoNavigationResult = {
   goBack: () => Promise<void>;
   canGoBack: boolean;
 
-  // Phase 12
   ensureChildren: () => Promise<void>;
 };
 
@@ -104,6 +103,19 @@ export function useGeoNavigation(rootId: GeoId = "ch"): UseGeoNavigationResult {
     await repositories.geo.ensureChildren(current.id as GeoId, current.level as GeoLevel);
     await refreshTree();
   }, [current.id, current.level, refreshTree]);
+
+  // Phase 13: Auto-load children when entering canton/district (only if empty)
+  useEffect(() => {
+    if (!tree) return;
+
+    const lvl = current.level;
+    const shouldLoad = (lvl === "canton" || lvl === "district") && (current.childrenIds?.length ?? 0) === 0;
+
+    if (!shouldLoad) return;
+
+    // fire-and-forget, but safe
+    void ensureChildren();
+  }, [tree, current.id, current.level, current.childrenIds, ensureChildren]);
 
   return {
     tree,
