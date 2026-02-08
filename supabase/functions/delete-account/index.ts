@@ -1,7 +1,8 @@
 // supabase/functions/delete-account/index.ts
 // Hard delete: Auth user + DB rows + Storage objects
-// - Requires Supabase Edge Functions with SERVICE_ROLE key
-// - Idempotent-ish: repeated calls should not explode if some parts already gone
+// - Uses SERVICE ROLE key (stored as PROJECT_SERVICE_ROLE_KEY)
+// - Verifies caller via passed JWT (Authorization: Bearer <access_token>)
+// - Keeps admin client clean (DO NOT override global Authorization)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
@@ -22,6 +23,12 @@ function jsonResponse(status: number, body: Json, origin?: string) {
   });
 }
 
+function extractBearerToken(authHeader: string | null): string | null {
+  if (!authHeader) return null;
+  const m = /^Bearer\s+(.+)$/i.exec(authHeader.trim());
+  return m?.[1]?.trim() || null;
+}
+
 async function listAllObjects(opts: {
   admin: ReturnType<typeof createClient>;
   bucket: string;
@@ -29,8 +36,6 @@ async function listAllObjects(opts: {
 }) {
   const { admin, bucket, prefix } = opts;
 
-  // Supabase Storage list() is paginated by offset/limit, but does not return a cursor.
-  // We loop until fewer than limit are returned.
   const limit = 1000;
   let offset = 0;
 
@@ -43,9 +48,7 @@ async function listAllObjects(opts: {
       sortBy: { column: "name", order: "asc" },
     });
 
-    if (error) {
-      throw new Error(`Storage list failed: ${error.message}`);
-    }
+    if (error) throw new Error(`Storage list failed: ${error.message}`);
 
     const batch = (data ?? [])
       .filter((x) => x?.name && x.name !== ".emptyFolderPlaceholder")
@@ -72,51 +75,36 @@ Deno.serve(async (req) => {
     return jsonResponse(405, { error: "Method Not Allowed" }, origin);
   }
 
-  // ✅ Require Authorization header (Bearer token)
-  const authHeader = req.headers.get("Authorization") ?? "";
-  if (!authHeader || !authHeader.toLowerCase().startsWith("bearer ")) {
-    return jsonResponse(401, { error: "Unauthorized: missing Bearer token." }, origin);
-  }
-
   try {
-    // ✅ Use your secret names (SUPABASE_* is blocked as custom secrets)
-    const supabaseUrl = Deno.env.get("PROJECT_SUPABASE_URL") ?? "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const serviceRoleKey = Deno.env.get("PROJECT_SERVICE_ROLE_KEY") ?? "";
 
     if (!supabaseUrl || !serviceRoleKey) {
       return jsonResponse(
         500,
-        { error: "Missing PROJECT_SUPABASE_URL or PROJECT_SERVICE_ROLE_KEY in Edge Function env." },
+        { error: "Missing SUPABASE_URL or PROJECT_SERVICE_ROLE_KEY in Edge Function env." },
         origin
       );
     }
 
-    // Client uses Service Role for privileged operations
+    // ✅ Admin client MUST keep its own auth (service role)
     const admin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false },
-      global: {
-        headers: {
-          // forward auth header for getUser() via JWT
-          Authorization: authHeader,
-        },
-      },
     });
 
-    // Verify caller identity from JWT
-    const { data: userRes, error: userErr } = await admin.auth.getUser();
-    if (userErr) return jsonResponse(401, { error: `Unauthorized: ${userErr.message}` }, origin);
+    // ✅ Verify caller identity from JWT WITHOUT overriding admin headers
+    const token = extractBearerToken(req.headers.get("Authorization"));
+    if (!token) {
+      return jsonResponse(401, { error: "Unauthorized: missing Bearer token." }, origin);
+    }
+
+    const { data: userRes, error: userErr } = await admin.auth.getUser(token);
+    if (userErr) {
+      return jsonResponse(401, { error: `Unauthorized: ${userErr.message}` }, origin);
+    }
 
     const uid = userRes.user?.id;
     if (!uid) return jsonResponse(401, { error: "Unauthorized: no user." }, origin);
-
-    // ---- Deletion plan (scalable):
-    // 1) Storage cleanup (moments photos)
-    // 2) App DB cleanup (moments, profiles, etc.)
-    // 3) Auth user delete (final)
-    //
-    // Notes:
-    // - If Auth delete happens first, JWT becomes invalid and follow-up calls might fail.
-    // - Storage can be large; we delete by prefix.
 
     const report: Json = {
       userId: uid,
@@ -125,17 +113,15 @@ Deno.serve(async (req) => {
       auth: { deleted: false },
     };
 
-    // 1) Storage: delete `users/<uid>/photos/*` in bucket "moments"
+    // 1) Storage cleanup
     {
       const bucket = "moments";
       const prefix = `users/${uid}/photos`;
 
-      // list objects under prefix and delete in chunks
       let paths: string[] = [];
       try {
         paths = await listAllObjects({ admin, bucket, prefix });
       } catch (e: any) {
-        // Keep going: storage cleanup failure should still be reported
         report.storage = { ...((report.storage as Json) ?? {}), error: String(e?.message ?? e) };
         paths = [];
       }
@@ -145,62 +131,46 @@ Deno.serve(async (req) => {
         attempted: paths.length,
       };
 
-      // Supabase remove() accepts an array of paths; chunk to be safe
       const chunkSize = 200;
       for (let i = 0; i < paths.length; i += chunkSize) {
         const chunk = paths.slice(i, i + chunkSize);
         const { error } = await admin.storage.from(bucket).remove(chunk);
+
         if (error) {
           report.storage = {
             ...(report.storage as Json),
             error: `Storage remove failed: ${error.message}`,
           };
           break;
-        } else {
-          report.storage = {
-            ...(report.storage as Json),
-            deleted: Number((report.storage as any).deleted ?? 0) + chunk.length,
-          };
         }
+
+        report.storage = {
+          ...(report.storage as Json),
+          deleted: Number((report.storage as any).deleted ?? 0) + chunk.length,
+        };
       }
     }
 
     // 2) DB cleanup
-    // Moments
     {
       const { count, error } = await admin.from("moments").delete({ count: "exact" }).eq("user_id", uid);
-
-      if (error) {
-        (report.db as any).momentsError = error.message;
-      } else {
-        (report.db as any).momentsDeleted = count ?? 0;
-      }
+      if (error) (report.db as any).momentsError = error.message;
+      else (report.db as any).momentsDeleted = count ?? 0;
     }
 
-    // Profile
     {
       const { count, error } = await admin.from("profiles").delete({ count: "exact" }).eq("id", uid);
-
-      if (error) {
-        (report.db as any).profileError = error.message;
-      } else {
-        (report.db as any).profileDeleted = count ?? 0;
-      }
+      if (error) (report.db as any).profileError = error.message;
+      else (report.db as any).profileDeleted = count ?? 0;
     }
 
     // 3) Auth user delete (final)
     {
-      // admin.auth.admin.deleteUser is the clean “really delete” operation
       const { error } = await admin.auth.admin.deleteUser(uid);
-      if (error) {
-        (report.auth as any).error = error.message;
-      } else {
-        (report.auth as any).deleted = true;
-      }
+      if (error) (report.auth as any).error = error.message;
+      else (report.auth as any).deleted = true;
     }
 
-    // If auth delete failed, we still return 200 with report (frontend can show error)
-    // but you may choose to return 500. For now: transparent report is better.
     return jsonResponse(200, { ok: true, report }, origin);
   } catch (e: any) {
     return jsonResponse(500, { error: String(e?.message ?? e ?? "Unknown error") }, origin);
