@@ -1,5 +1,7 @@
+// FILE: src/features/auth/guards.tsx
+
 import type { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "./useAuth";
 
 export function FullscreenLoading({ label = "Lade…" }: { label?: string }) {
@@ -52,7 +54,6 @@ export function FullscreenLoading({ label = "Lade…" }: { label?: string }) {
 export function RequireAuth({ children }: { children: ReactNode }) {
   const auth = useAuth();
 
-  // ✅ Only block on session loading
   if (auth.sessionLoading) return <FullscreenLoading />;
 
   if (!auth.isAuthed) return <Navigate to="/auth" replace />;
@@ -70,19 +71,37 @@ export function RequireNoAuth({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-export function RequireOnboardingComplete({ children }: { children: ReactNode }) {
+/**
+ * Clean single place for: "must be authed + onboarded"
+ * Used as a route layout element (renders <Outlet />)
+ */
+export function RequireAuthedOnboardedLayout() {
   const auth = useAuth();
 
   if (auth.sessionLoading) return <FullscreenLoading />;
 
   if (!auth.isAuthed) return <Navigate to="/auth" replace />;
 
-  // ✅ Don't block the app if profile is missing/slow.
-  // If profile loads later and shows not onboarded, we can redirect then (next navigation),
-  // but we avoid deadlocks.
-  if (!auth.profile) return <>{children}</>;
+  // IMPORTANT: do NOT block app if profile is missing/slow.
+  if (!auth.profile) return <Outlet />;
 
   if (!auth.profile.onboardedAt) return <Navigate to="/onboarding" replace />;
+
+  return <Outlet />;
+}
+
+// Prevent re-onboarding
+export function RequireNotOnboarded({ children }: { children: ReactNode }) {
+  const auth = useAuth();
+
+  if (auth.sessionLoading) return <FullscreenLoading />;
+
+  if (!auth.isAuthed) return <Navigate to="/auth" replace />;
+
+  // allow page until profile arrives (page can handle later)
+  if (!auth.profile) return <>{children}</>;
+
+  if (auth.profile.onboardedAt) return <Navigate to="/" replace />;
 
   return <>{children}</>;
 }

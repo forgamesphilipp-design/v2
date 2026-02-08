@@ -1,38 +1,33 @@
 // FILE: src/features/settings/SettingsScreen.tsx
-// Updated: "hard logout" (global signOut + supabase storage cleanup + hard navigation)
 
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AppLayout from "../../app/AppLayout";
-import Card from "../../shared/ui/Card";
-import Button from "../../shared/ui/Button";
+import { Card, Button, useToast } from "../../shared/ui";
 import { useAuth } from "../auth/useAuth";
 import { repositories } from "../../app/repositories";
-import { supabase } from "../../app/supabaseClient";
-
-function clearSupabaseStorage() {
-  try {
-    for (const k of Object.keys(localStorage)) {
-      if (k.toLowerCase().includes("supabase")) localStorage.removeItem(k);
-    }
-    for (const k of Object.keys(sessionStorage)) {
-      if (k.toLowerCase().includes("supabase")) sessionStorage.removeItem(k);
-    }
-  } catch {
-    // ignore
-  }
-}
 
 export default function SettingsScreen() {
   const auth = useAuth();
-  const nav = useNavigate();
+  const toast = useToast();
 
   const initialName = useMemo(() => auth.profile?.displayName ?? "", [auth.profile?.displayName]);
+
   const [displayName, setDisplayName] = useState(initialName);
+
+  // Tracks whether the user has manually edited the input.
+  // We only auto-sync from profile when user hasn't touched it.
+  const touchedRef = useRef(false);
 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  // ✅ Keep input in sync with profile changes (e.g. after refresh/reload),
+  // but only if the user isn't actively editing.
+  useEffect(() => {
+    if (touchedRef.current) return;
+    setDisplayName(initialName);
+  }, [initialName]);
 
   const canSave =
     displayName.trim().length >= 2 &&
@@ -41,49 +36,32 @@ export default function SettingsScreen() {
 
   async function save() {
     if (!canSave) return;
+
+    const nextName = displayName.trim();
+
     setBusy(true);
     setErr(null);
     setSaved(false);
 
     try {
       await repositories.profile.updateMyProfile({
-        displayName: displayName.trim(),
+        displayName: nextName,
       });
+      
+      touchedRef.current = false;
 
       await auth.refresh();
+
       setSaved(true);
+      toast.success("Profil gespeichert.");
       window.setTimeout(() => setSaved(false), 1200);
     } catch (e: any) {
-      setErr(String(e?.message ?? e ?? "Fehler"));
+      const msg = String(e?.message ?? e ?? "Fehler");
+      setErr(msg);
+      toast.error(msg);
     } finally {
       setBusy(false);
     }
-  }
-
-  async function logoutHard() {
-    if (busy) return;
-    setBusy(true);
-    setErr(null);
-
-    try {
-      // 1) Kill session server-side too
-      await supabase.auth.signOut({ scope: "global" });
-    } catch {
-      // ignore
-    }
-
-    // 2) Remove any cached tokens/state
-    clearSupabaseStorage();
-
-    // 3) Reset app auth state (best-effort)
-    try {
-      await auth.hardReset();
-    } catch {
-      // ignore
-    }
-
-    // 4) Hard navigate so everything re-inits cleanly
-    window.location.href = "/auth";
   }
 
   return (
@@ -96,25 +74,20 @@ export default function SettingsScreen() {
             <div style={{ color: "var(--muted)" }}>
               Email: <b style={{ color: "var(--text)" }}>{auth.user?.email ?? "—"}</b>
             </div>
+
             <div style={{ color: "var(--muted)" }}>
               User ID:{" "}
               <span style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>
                 {auth.user?.id ?? "—"}
               </span>
             </div>
+
             <div style={{ color: "var(--muted)" }}>
               Onboarding:{" "}
-              <b style={{ color: "var(--text)" }}>{auth.profile?.onboardedAt ? "✅ done" : "❌ missing"}</b>
+              <b style={{ color: "var(--text)" }}>
+                {auth.profile?.onboardedAt ? "✅ abgeschlossen" : "—"}
+              </b>
             </div>
-          </div>
-
-          <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Button onClick={() => nav("/onboarding")} disabled={busy}>
-              Onboarding öffnen
-            </Button>
-            <Button onClick={() => void logoutHard()} disabled={busy}>
-              Logout (Hard)
-            </Button>
           </div>
 
           {err && (
@@ -131,10 +104,16 @@ export default function SettingsScreen() {
           </div>
 
           <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
-            <div style={{ fontSize: 12, fontWeight: 900, color: "var(--muted)" }}>Anzeigename</div>
+            <div style={{ fontSize: 12, fontWeight: 900, color: "var(--muted)" }}>
+              Anzeigename
+            </div>
+
             <input
               value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
+              onChange={(e) => {
+                touchedRef.current = true;
+                setDisplayName(e.target.value);
+              }}
               placeholder="z.B. Phil"
               autoComplete="nickname"
               disabled={busy}
@@ -154,7 +133,12 @@ export default function SettingsScreen() {
               <Button variant="primary" onClick={() => void save()} disabled={!canSave}>
                 {busy ? "Speichere…" : "Speichern"}
               </Button>
-              {saved && <div style={{ fontSize: 13, color: "var(--muted)" }}>✅ Gespeichert</div>}
+
+              {saved && (
+                <div style={{ fontSize: 13, color: "var(--muted)" }}>
+                  ✅ Gespeichert
+                </div>
+              )}
             </div>
           </div>
         </Card>
@@ -166,7 +150,7 @@ export default function SettingsScreen() {
               <li>Avatar Upload (Storage) + Anzeige im Header</li>
               <li>Email ändern</li>
               <li>Account löschen (mit Storage Cleanup via Edge Function)</li>
-              <li>OAuth (Google/Apple) als Alternative zu Magic Link</li>
+              <li>Mehrere Login-Provider verwalten</li>
             </ul>
           </div>
         </Card>

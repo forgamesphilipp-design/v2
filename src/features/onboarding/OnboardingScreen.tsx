@@ -3,8 +3,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "../../app/AppLayout";
-import Card from "../../shared/ui/Card";
-import Button from "../../shared/ui/Button";
+import { Card, Button } from "../../shared/ui";
 import { repositories } from "../../app/repositories";
 import { useAuth } from "../auth/useAuth";
 

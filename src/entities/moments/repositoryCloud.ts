@@ -1,39 +1,41 @@
 // FILE: src/entities/moments/repositoryCloud.ts
-// (Optional but recommended) Better error messages + defensive signed-url handling.
-// Replace entire file.
 
 import type { MomentsRepository, CreateMomentInput } from "./repository";
 import type { Moment } from "./model";
 import { supabase } from "../../app/supabaseClient";
-
-function prettySupabaseError(e: any): string {
-  const msg = String(e?.message ?? e ?? "Unknown error");
-  // common RLS hint
-  if (msg.toLowerCase().includes("row level security")) {
-    return "Zugriff verweigert (RLS). Bist du eingeloggt und gehört der Datensatz dir?";
-  }
-  return msg;
-}
+import { toError } from "../../shared/supabase/errors";
+import { safeSignedUrl } from "../../shared/supabase/storage";
+import { mapMomentRow, type MomentsRow } from "./mappers";
 
 export class MomentsRepositoryCloud implements MomentsRepository {
   async list(): Promise<Moment[]> {
     const { data, error } = await supabase.from("moments").select("*").order("taken_at", { ascending: false });
-    if (error) throw new Error(prettySupabaseError(error));
+    if (error) throw toError(error);
 
-    const rows = data ?? [];
-    const out = await Promise.all(rows.map((r) => this.mapRowAsync(r)));
+    const rows = (data ?? []) as MomentsRow[];
+
+    const out = await Promise.all(
+      rows.map(async (r) => {
+        const signed = await safeSignedUrl("moments", r.photo_url, 60 * 60);
+        return mapMomentRow(r, signed);
+      })
+    );
+
     return out;
   }
 
   async get(id: string): Promise<Moment | null> {
     const { data, error } = await supabase.from("moments").select("*").eq("id", id).single();
-    if (error) return null;
-    return await this.mapRowAsync(data);
+    if (error || !data) return null;
+
+    const row = data as MomentsRow;
+    const signed = await safeSignedUrl("moments", row.photo_url, 60 * 60);
+    return mapMomentRow(row, signed);
   }
 
   async create(input: CreateMomentInput): Promise<Moment> {
     const { data: userRes, error: userErr } = await supabase.auth.getUser();
-    if (userErr) throw new Error(prettySupabaseError(userErr));
+    if (userErr) throw toError(userErr);
 
     const uid = userRes.user?.id;
     if (!uid) throw new Error("Not authenticated");
@@ -54,41 +56,21 @@ export class MomentsRepositoryCloud implements MomentsRepository {
       .select()
       .single();
 
-    if (error) throw new Error(prettySupabaseError(error));
-    return await this.mapRowAsync(data);
+    if (error) throw toError(error);
+
+    const row = data as MomentsRow;
+    const signed = await safeSignedUrl("moments", row.photo_url, 60 * 60);
+    return mapMomentRow(row, signed);
   }
 
   async remove(id: string): Promise<void> {
     const { error } = await supabase.from("moments").delete().eq("id", id);
-    if (error) throw new Error(prettySupabaseError(error));
+    if (error) throw toError(error);
   }
 
   async clearAll(): Promise<void> {
+    // NOTE: stays as-is (dev helper). In multi-user scenarios, you'd typically scope to user_id.
     const { error } = await supabase.from("moments").delete().neq("id", "");
-    if (error) throw new Error(prettySupabaseError(error));
-  }
-
-  private async signedUrlForPath(path: string | null | undefined): Promise<string> {
-    const p = String(path ?? "").trim();
-    if (!p) return "";
-
-    const { data, error } = await supabase.storage.from("moments").createSignedUrl(p, 60 * 60); // 1h
-    if (error) return "";
-    return data?.signedUrl ?? "";
-  }
-
-  private async mapRowAsync(row: any): Promise<Moment> {
-    const signed = await this.signedUrlForPath(row.photo_url);
-
-    return {
-      id: row.id,
-      title: row.title,
-      takenAt: row.taken_at,
-      position: { lon: row.lon, lat: row.lat },
-      accuracyM: row.accuracy_m,
-      // UI: signed URL (from DB storage path)
-      photoUrl: signed,
-      admin: row.admin,
-    };
+    if (error) throw toError(error);
   }
 }

@@ -1,6 +1,14 @@
+// FILE: src/shared/ui/Card.tsx
+
 import type { ReactNode } from "react";
 
-export default function Card({ children, style }: { children: ReactNode; style?: React.CSSProperties }) {
+type Props = {
+  children: ReactNode;
+  style?: React.CSSProperties;
+  padding?: number;
+};
+
+export default function Card({ children, style, padding = 16 }: Props) {
   return (
     <div
       style={{
@@ -8,7 +16,7 @@ export default function Card({ children, style }: { children: ReactNode; style?:
         border: "1px solid var(--border)",
         borderRadius: "var(--radius)",
         boxShadow: "var(--shadow)",
-        padding: 16,
+        padding,
         ...style,
       }}
     >

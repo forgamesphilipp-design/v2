@@ -1,10 +1,9 @@
-import Card from "../../shared/ui/Card";
+// FILE: src/features/explore/MapPlaceholder.tsx
+
+import { Card } from "../../shared/ui";
 import type { GeoNode } from "../../entities/geo/model";
 
-export default function MapPlaceholder(props: {
-  current: GeoNode;
-  breadcrumbText: string;
-}) {
+export default function MapPlaceholder(props: { current: GeoNode; breadcrumbText: string }) {
   const { current, breadcrumbText } = props;
 
   return (

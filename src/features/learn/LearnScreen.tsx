@@ -1,5 +1,7 @@
+// FILE: src/features/learn/LearnScreen.tsx
+
 import AppLayout from "../../app/AppLayout";
-import Card from "../../shared/ui/Card";
+import { Card } from "../../shared/ui";
 
 export default function LearnScreen() {
   return (

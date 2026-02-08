@@ -1,9 +1,4 @@
 // FILE: src/pages/AuthCallbackPage.tsx
-// 1:1 replacement
-// Changes:
-// - If a session already exists on mount, immediately redirect to "/" (no UI flash)
-// - Debug block is shown ONLY on error
-// - Still runs the OAuth processing only once (ranRef)
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -32,7 +27,6 @@ function isPkceVerifierMissing(err: any) {
 
 export default function AuthCallbackPage() {
   const nav = useNavigate();
-
   const ranRef = useRef(false);
 
   const [step, setStep] = useState<Step>("starting");
@@ -48,7 +42,7 @@ export default function AuthCallbackPage() {
     return { href: u.href, code, err, errDesc, hash };
   }, []);
 
-  // ✅ If already logged in, don't show callback UI at all
+  // ✅ If already logged in, do not render anything (no UI flash)
   useEffect(() => {
     let cancelled = false;
     supabase.auth.getSession().then(({ data }) => {
@@ -143,21 +137,18 @@ export default function AuthCallbackPage() {
   }, [nav, urlInfo]);
 
   async function hardReset() {
-    await supabase.auth.signOut({ scope: "global" });
+    try {
+      await supabase.auth.signOut({ scope: "global" });
+    } catch {
+      // ignore
+    }
     nav("/auth", { replace: true });
   }
 
-  const label =
-    step === "starting"
-      ? "Starte OAuth Callback…"
-      : step === "processing"
-      ? "Login wird verarbeitet…"
-      : step === "waiting_session"
-      ? "Warte auf Session…"
-      : step === "done"
-      ? "Fertig…"
-      : "Fehler";
+  // ✅ Silent by default: no UI = no flicker
+  if (step !== "error") return null;
 
+  // ✅ Only show UI on error (debugging)
   return (
     <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--bg)", padding: 16 }}>
       <div
@@ -171,35 +162,28 @@ export default function AuthCallbackPage() {
         }}
       >
         <div style={{ padding: 14, borderBottom: "1px solid var(--border)" }}>
-          <div style={{ fontWeight: 900 }}>Login wird abgeschlossen…</div>
-          <div style={{ marginTop: 6, fontSize: 13, color: "var(--muted)" }}>{label}</div>
+          <div style={{ fontWeight: 900 }}>Login fehlgeschlagen</div>
+          <div style={{ marginTop: 6, fontSize: 13, color: "var(--muted)" }}>
+            Fehler: <b>{error ?? "Unbekannt"}</b>
+          </div>
         </div>
 
         <div style={{ padding: 14, display: "grid", gap: 12 }}>
-          {step === "error" && error && (
-            <div style={{ fontSize: 13, color: "var(--muted)" }}>
-              Fehler: <b>{error}</b>
-            </div>
-          )}
-
-          {/* ✅ Debug only when error */}
-          {step === "error" && (
-            <div
-              style={{
-                borderRadius: 14,
-                border: "1px dashed var(--border)",
-                background: "rgba(255,255,255,0.65)",
-                padding: 12,
-                fontSize: 12,
-                color: "var(--muted)",
-              }}
-            >
-              <div style={{ fontWeight: 900, color: "var(--text)" }}>Debug</div>
-              <pre style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+          <div
+            style={{
+              borderRadius: 14,
+              border: "1px dashed var(--border)",
+              background: "rgba(255,255,255,0.65)",
+              padding: 12,
+              fontSize: 12,
+              color: "var(--muted)",
+            }}
+          >
+            <div style={{ fontWeight: 900, color: "var(--text)" }}>Debug</div>
+            <pre style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
 {JSON.stringify({ step, ...debug }, null, 2)}
-              </pre>
-            </div>
-          )}
+            </pre>
+          </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button
@@ -233,7 +217,7 @@ export default function AuthCallbackPage() {
           </div>
 
           <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.45 }}>
-            Hinweis: Wenn du deployed bist (Vercel/Netlify) brauchst du zusätzlich SPA rewrites, sonst bekommst du bei
+            Hinweis: Wenn du deployed bist (Vercel/Netlify) brauchst du SPA rewrites, sonst bekommst du bei
             <code> /auth/callback</code> 404.
           </div>
         </div>

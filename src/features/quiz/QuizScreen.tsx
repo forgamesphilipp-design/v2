@@ -1,6 +1,8 @@
+// FILE: src/features/quiz/QuizScreen.tsx
+
 import { useEffect, useState } from "react";
 import AppLayout from "../../app/AppLayout";
-import Card from "../../shared/ui/Card";
+import { Card } from "../../shared/ui";
 import { repositories } from "../../app/repositories";
 import type { QuizMode } from "../../entities/quiz/model";
 

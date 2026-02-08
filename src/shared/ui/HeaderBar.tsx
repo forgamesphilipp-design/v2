@@ -1,3 +1,5 @@
+// FILE: src/shared/ui/HeaderBar.tsx
+
 import { useNavigate } from "react-router-dom";
 import Button from "./Button";
 
@@ -5,10 +7,11 @@ type Props = {
   title: string;
   subtitle?: string;
   backTo?: string; // wenn gesetzt -> Back Button
+  backLabel?: string; // optionaler Text für Back Button
   right?: React.ReactNode; // optional rechts
 };
 
-export default function HeaderBar({ title, subtitle, backTo, right }: Props) {
+export default function HeaderBar({ title, subtitle, backTo, backLabel = "← Zurück", right }: Props) {
   const nav = useNavigate();
 
   return (
@@ -50,7 +53,7 @@ export default function HeaderBar({ title, subtitle, backTo, right }: Props) {
                 color: "#fff",
               }}
             >
-              ← Home
+              {backLabel}
             </Button>
           )}
         </div>

@@ -1,21 +1,8 @@
-import { useNavigate } from "react-router-dom";
-import Button from "../../shared/ui/Button";
-import { supabase } from "../../app/supabaseClient";
-import { useAuth } from "./useAuth";
+// FILE: src/features/auth/AuthStatus.tsx
 
-function clearSupabaseStorage() {
-  try {
-    // remove only supabase-related keys
-    for (const k of Object.keys(localStorage)) {
-      if (k.toLowerCase().includes("supabase")) localStorage.removeItem(k);
-    }
-    for (const k of Object.keys(sessionStorage)) {
-      if (k.toLowerCase().includes("supabase")) sessionStorage.removeItem(k);
-    }
-  } catch {
-    // ignore
-  }
-}
+import { useNavigate } from "react-router-dom";
+import { Button } from "../../shared/ui";
+import { useAuth } from "./useAuth";
 
 export default function AuthStatus() {
   const nav = useNavigate();
@@ -44,26 +31,9 @@ export default function AuthStatus() {
     );
   }
 
-  async function logout() {
-    // 1) Supabase session kill (global = safest)
-    try {
-      await supabase.auth.signOut({ scope: "global" });
-    } catch {
-      // ignore
-    }
-
-    // 2) Ensure local tokens/state are gone
-    clearSupabaseStorage();
-
-    // 3) Reset your context quickly (optional but nice)
-    try {
-      await auth.hardReset();
-    } catch {
-      // ignore
-    }
-
-    // 4) Hard navigate so router + auth re-init is clean
-    window.location.href = "/auth";
+  async function onLogout() {
+    await auth.logout();
+    nav("/auth", { replace: true });
   }
 
   const baseName = auth.profile?.displayName?.trim() || auth.user.email || "eingeloggt";
@@ -73,7 +43,7 @@ export default function AuthStatus() {
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{ fontSize: 12, opacity: 0.95, fontWeight: 800 }}>{name}</div>
       <Button
-        onClick={() => void logout()}
+        onClick={() => void onLogout()}
         style={{
           background: "rgba(255,255,255,0.16)",
           border: "1px solid rgba(255,255,255,0.22)",

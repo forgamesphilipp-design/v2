@@ -1,6 +1,7 @@
+// FILE: src/app/AppLayout.tsx
+
 import type { ReactNode } from "react";
-import Container from "../shared/ui/Container";
-import HeaderBar from "../shared/ui/HeaderBar";
+import { Container, HeaderBar } from "../shared/ui";
 import AuthStatus from "../features/auth/AuthStatus";
 
 type Props = {

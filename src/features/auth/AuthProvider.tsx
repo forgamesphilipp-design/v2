@@ -1,3 +1,5 @@
+// FILE: src/features/auth/AuthProvider.tsx
+
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../../app/supabaseClient";
@@ -16,6 +18,7 @@ export type AuthState = {
   isAuthed: boolean;
 
   refresh: () => Promise<void>;
+  logout: () => Promise<void>;
   hardReset: () => Promise<void>;
 };
 
@@ -35,6 +38,19 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
       }
     );
   });
+}
+
+function clearSupabaseStorage() {
+  try {
+    for (const k of Object.keys(localStorage)) {
+      if (k.toLowerCase().includes("supabase")) localStorage.removeItem(k);
+    }
+    for (const k of Object.keys(sessionStorage)) {
+      if (k.toLowerCase().includes("supabase")) sessionStorage.removeItem(k);
+    }
+  } catch {
+    // ignore
+  }
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -102,18 +118,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }
 
-  async function hardReset() {
+  /**
+   * Clean, SPA-friendly logout:
+   * - No hard reload
+   * - One source of truth for logout behavior
+   * - UI triggers navigation after this resolves
+   */
+  async function logout() {
+    // Immediately clear local app state (prevents UI flicker from stale authed UI)
+    profileLoadSeq.current++;
+    setSession(null);
+    setUser(null);
+    setProfile(null);
+    setProfileLoading(false);
+    setSessionLoading(false);
+
+    // Best-effort server sign out
     try {
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: "global" });
     } catch {
       // ignore
-    } finally {
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-      setSessionLoading(false);
-      setProfileLoading(false);
     }
+
+    // Best-effort local cleanup
+    clearSupabaseStorage();
+  }
+
+  // Kept for backward compatibility; now simply calls logout()
+  async function hardReset() {
+    await logout();
   }
 
   useEffect(() => {
@@ -173,6 +206,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       profileLoading,
       isAuthed: Boolean(user),
       refresh,
+      logout,
       hardReset,
     }),
     [session, user, profile, sessionLoading, profileLoading]

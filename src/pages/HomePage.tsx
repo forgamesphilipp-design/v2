@@ -4,9 +4,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Card from "../shared/ui/Card";
-import Button from "../shared/ui/Button";
-import Modal from "../shared/ui/Modal";
+import { Card, Button, Modal } from "../shared/ui";
 
 export default function HomePage() {
   const nav = useNavigate();

@@ -1,6 +1,7 @@
+// FILE: src/features/moments/MomentPhotoPreview.tsx
+
 import { useEffect, useMemo } from "react";
-import Card from "../../shared/ui/Card";
-import Button from "../../shared/ui/Button";
+import { Card, Button } from "../../shared/ui";
 
 type Props = {
   file: File;
