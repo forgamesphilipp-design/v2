@@ -8,23 +8,33 @@ import { useQuizSession } from "./useQuizSession";
 export default function QuizScreen() {
   const q = useQuizSession();
 
-  const title =
-    q.phase === "playing"
-      ? "Quiz"
-      : q.phase === "done"
-      ? "Quiz"
-      : "Quiz";
+  const title = "Quiz";
 
   const subtitle =
     q.phase === "playing"
       ? "Tippe den richtigen Kanton an."
       : q.phase === "done"
       ? "Resultat"
+      : q.phase === "ready"
+      ? "Bereit?"
       : "Wähle einen Modus.";
+
+  const showPrestart = q.phase === "ready";
+  const blurBg = showPrestart; // ✅ blur while modal is shown
 
   return (
     <AppLayout title={title} subtitle={subtitle} backTo="/">
-      <div style={{ display: "grid", gap: 12 }}>
+      {/* ✅ Background wrapper that can be blurred while prestart modal is open */}
+      <div
+        style={{
+          display: "grid",
+          gap: 12,
+          filter: blurBg ? "blur(10px)" : "none",
+          transition: "filter 180ms ease",
+          pointerEvents: blurBg ? "none" : "auto",
+          userSelect: blurBg ? "none" : "auto",
+        }}
+      >
         {/* MODE PICKER */}
         {q.phase === "idle" && (
           <Card>
@@ -61,11 +71,9 @@ export default function QuizScreen() {
                     }}
                   >
                     <div style={{ fontWeight: 950, fontSize: 16 }}>{m.title}</div>
-                    <div style={{ color: "var(--muted)", fontSize: 13 }}>
-                      {m.description}
-                    </div>
+                    <div style={{ color: "var(--muted)", fontSize: 13 }}>{m.description}</div>
                   </div>
-                ))                
+                ))
               )}
             </div>
           </Card>
@@ -81,7 +89,7 @@ export default function QuizScreen() {
           </Card>
         )}
 
-        {/* PLAYING HUD */}
+        {/* ✅ PLAYING HUD */}
         {q.phase === "playing" && q.current && (
           <Card>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: 12 }}>
@@ -90,20 +98,12 @@ export default function QuizScreen() {
                   Wo ist <span style={{ color: "var(--accent)" }}>{q.current.name}</span>?
                 </div>
                 <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-                  Fortschritt: <b>{q.progressLabel}</b> · Richtig: <b>{q.correctCount}</b>
-                  {q.attemptsOnCurrent > 0 ? (
-                    <>
-                      {" "}
-                      · Versuche: <b>{q.attemptsOnCurrent}</b>
-                    </>
-                  ) : null}
+                  Fortschritt: <b>{q.progressLabel}</b> · Zeit: <b>{q.timeLabel}</b>
                 </div>
               </div>
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
-
                 <Button onClick={q.restart}>Neu starten</Button>
-
                 <Button onClick={q.backToModes} style={{ background: "var(--bg)" }}>
                   Modus wechseln
                 </Button>
@@ -112,10 +112,11 @@ export default function QuizScreen() {
           </Card>
         )}
 
-        {/* MAP (country view for cantons quiz) */}
-        {(q.phase === "playing" || q.phase === "done") && q.mode && (
+        {/* ✅ MAP rendered for both playing + done + ready
+            ready: map is already loaded but blurred by wrapper */}
+        {(q.phase === "playing" || q.phase === "done" || q.phase === "ready") && q.mode && (
           <HierarchySvg
-            scopeId={q.mode.startScopeId}     // "ch"
+            scopeId={q.mode.startScopeId} // "ch"
             parentId={null}
             level={"country"}
             onSelectNode={(id) => q.answer(String(id))}
@@ -125,15 +126,36 @@ export default function QuizScreen() {
             lockedFills={q.lockedFills}
           />
         )}
+      </div>
+
+      {/* ✅ PRESTART MODAL (Start / Abbrechen) */}
+      <Modal
+        open={showPrestart}
+        title="Quiz starten?"
+        onClose={q.backToModes} // close behaves like cancel
+      >
+        <div style={{ display: "grid", gap: 12 }}>
+          <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>
+            Alles ist geladen. Beim Start läuft die Zeit.
+          </div>
+
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+            <Button onClick={q.backToModes}>Abbrechen</Button>
+            <Button variant="primary" onClick={q.begin}>
+              Start
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* DONE */}
-      <Modal
-        open={q.phase === "done"}
-        title="Resultat"
-        onClose={q.backToModes}
-      >
+      <Modal open={q.phase === "done"} title="Resultat" onClose={q.backToModes}>
         <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
           Resultat: <b>{q.correctCount}</b> richtig von <b>{q.total}</b>.
+        </div>
+
+        <div style={{ marginTop: 8, color: "var(--muted)", fontSize: 13 }}>
+          Zeit: <b>{q.timeLabel}</b>
         </div>
 
         <div
@@ -153,8 +175,6 @@ export default function QuizScreen() {
           <Button onClick={q.backToModes}>Modus wählen</Button>
         </div>
       </Modal>
-
-      </div>
     </AppLayout>
   );
 }
