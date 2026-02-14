@@ -2,30 +2,31 @@
 
 import AppLayout from "../../app/AppLayout";
 import { useGeoNavigation } from "../navigation/useGeoNavigation";
-import MapPlaceholder from "./MapPlaceholder";
+import Map from "./Map";
 import { appConfig } from "../../app/config";
 import ExploreGeoNavCard from "./ExploreGeoNavCard";
 import ExploreMomentsPanel from "./ExploreMomentsPanel";
 
 export default function ExploreScreen() {
   const nav = useGeoNavigation("ch");
-  const breadcrumbText = nav.breadcrumb.map((n) => n.name).join(" › ");
 
   return (
-    <AppLayout title="Explore" subtitle="Domain-Test (später Karte/GPS)" backTo="/">
+    <AppLayout title="Explore" subtitle="Erkunde die Schweiz." backTo="/">
       <div style={{ display: "grid", gap: 12 }}>
         {appConfig.features.geoNavigation && (
           <ExploreGeoNavCard
-            breadcrumbText={breadcrumbText}
+            breadcrumb={nav.breadcrumb}
             current={nav.current}
-            children={nav.children}
             canGoBack={nav.canGoBack}
             onBack={() => void nav.goBack()}
             onGoTo={(id) => void nav.goTo(id)}
           />
         )}
 
-        <MapPlaceholder current={nav.current} breadcrumbText={breadcrumbText} />
+        <Map
+          current={nav.current}
+          onSelectNode={(id) => void nav.goTo(id as any)}
+        />
 
         {appConfig.features.moments && <ExploreMomentsPanel />}
       </div>
