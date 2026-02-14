@@ -243,7 +243,7 @@ export default function HierarchySvg({
 
     enterTimer.current = window.setTimeout(() => {
       setHovered((prev) => (prev === id ? prev : id));
-    }, 80);
+    }, 40);
   };
 
   const onLeave = (id: string) => {
@@ -255,7 +255,7 @@ export default function HierarchySvg({
 
     leaveTimer.current = window.setTimeout(() => {
       setHovered((prev) => (prev === id ? null : prev));
-    }, 60);
+    }, 30);
   };
 
   useEffect(() => {
