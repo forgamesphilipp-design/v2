@@ -16,9 +16,9 @@ export default function HomePage() {
         <Card>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: 10 }}>
             <div>
-              <div style={{ fontSize: 22, fontWeight: 900 }}>Orient App v2</div>
+              <div style={{ fontSize: 22, fontWeight: 900 }}>SwissOrient</div>
               <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-                Clean start. Schritt für Schritt.
+                Lerne und entdecke die Schweiz.
               </div>
             </div>
 
@@ -43,7 +43,7 @@ export default function HomePage() {
         <div style={{ display: "grid", gap: 10 }}>
           <div style={{ fontWeight: 900 }}>Was wir gerade bauen</div>
           <div style={{ color: "var(--muted)", fontSize: 13, lineHeight: 1.5 }}>
-            Erst Struktur und saubere Bausteine (shared/ui). Features kommen später als Module.
+            Die App befindet sich aktuell in einer sehr frühen Entwicklungsphase. Im Moment arbeiten wir an den Kernfunktionen wie dem Quiz, um die Grundlagen zu schaffen. Sobald diese stabil sind, werden wir weitere Funktionen hinzufügen und die App kontinuierlich verbessern.
           </div>
         </div>
       </Modal>

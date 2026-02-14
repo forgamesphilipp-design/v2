@@ -1,6 +1,6 @@
 // FILE: src/pages/AuthPage.tsx
 // OAuth buttons added + existing magic-link flow preserved.
-// (Includes your busy/status fix + debug block.)
+// (Includes your busy/status fix.)
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../app/supabaseClient";
@@ -121,11 +121,6 @@ export default function AuthPage() {
   }, [canSend, busy, status, cooldownS]);
 
   const showResend = status === "sent";
-
-  const DEBUG = useMemo(() => {
-    const host = typeof window !== "undefined" ? window.location.hostname : "";
-    return host === "localhost" || host === "127.0.0.1";
-  }, []);
 
   return (
     <div
@@ -267,32 +262,6 @@ export default function AuthPage() {
             )}
           </div>
         </div>
-
-        {DEBUG && (
-          <div
-            style={{
-              borderRadius: 16,
-              border: "1px dashed var(--border)",
-              background: "rgba(255,255,255,0.75)",
-              padding: 12,
-              fontSize: 12,
-              color: "var(--muted)",
-            }}
-          >
-            <div style={{ fontWeight: 900, color: "var(--text)" }}>Debug</div>
-            <div style={{ marginTop: 6, display: "grid", gap: 4 }}>
-              <div>
-                status: <b>{status}</b> · busy: <b>{String(busy)}</b>
-              </div>
-              <div>
-                cooldownS: <b>{cooldownS}</b>
-              </div>
-              <div style={{ wordBreak: "break-word" }}>
-                err: <b>{err ?? "—"}</b>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

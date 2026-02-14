@@ -31,7 +31,6 @@ export default function AuthCallbackPage() {
 
   const [step, setStep] = useState<Step>("starting");
   const [error, setError] = useState<string | null>(null);
-  const [debug, setDebug] = useState<Record<string, any>>({});
 
   const urlInfo = useMemo(() => {
     const u = new URL(window.location.href);
@@ -42,7 +41,6 @@ export default function AuthCallbackPage() {
     return { href: u.href, code, err, errDesc, hash };
   }, []);
 
-  // ✅ If already logged in, do not render anything (no UI flash)
   useEffect(() => {
     let cancelled = false;
     supabase.auth.getSession().then(({ data }) => {
@@ -71,39 +69,23 @@ export default function AuthCallbackPage() {
 
         setStep("processing");
 
-        // 1) Try PKCE exchange if code exists (non-fatal if verifier missing)
         if (urlInfo.code) {
           const res = await supabase.auth.exchangeCodeForSession(urlInfo.href);
           if (res.error && !isPkceVerifierMissing(res.error)) {
-            setDebug((d) => ({ ...d, exchangeError: String(res.error.message ?? res.error) }));
-          } else if (res.error && isPkceVerifierMissing(res.error)) {
-            setDebug((d) => ({ ...d, exchangeIgnored: "PKCE verifier missing (ignored)" }));
+            throw res.error;
           }
         } else if (urlInfo.hash && urlInfo.hash.length > 1) {
-          // 2) Fallback for older implicit/hash callbacks (rare)
           const anyAuth: any = supabase.auth as any;
           if (typeof anyAuth.getSessionFromUrl === "function") {
             const { error } = await anyAuth.getSessionFromUrl({ storeSession: true });
-            if (error) setDebug((d) => ({ ...d, storeHashError: String(error.message ?? error) }));
+            if (error) throw error;
           }
         }
 
         setStep("waiting_session");
-        const session = await waitForSession(9000);
+        await waitForSession(9000);
 
         const { data: sNow } = await supabase.auth.getSession();
-        const { data: uNow } = await supabase.auth.getUser();
-
-        setDebug((d) => ({
-          ...d,
-          url: { hasCode: Boolean(urlInfo.code), hashLen: urlInfo.hash?.length ?? 0 },
-          sessionAfterWait: Boolean(session),
-          sessionNow: Boolean(sNow.session),
-          userNow: Boolean(uNow.user),
-          userId: uNow.user?.id ?? null,
-          email: uNow.user?.email ?? null,
-        }));
-
         if (!sNow.session) {
           throw new Error("No session after OAuth callback.");
         }
@@ -115,7 +97,6 @@ export default function AuthCallbackPage() {
       } catch (e: any) {
         if (cancelled) return;
 
-        // If session exists anyway -> treat as success
         const { data: sNow } = await supabase.auth.getSession();
         if (sNow.session) {
           nav("/", { replace: true });
@@ -124,10 +105,6 @@ export default function AuthCallbackPage() {
 
         setStep("error");
         setError(String(e?.message ?? e ?? "Auth callback failed"));
-        setDebug((d) => ({
-          ...d,
-          caughtError: String(e?.message ?? e ?? "Auth callback failed"),
-        }));
       }
     })();
 
@@ -145,10 +122,8 @@ export default function AuthCallbackPage() {
     nav("/auth", { replace: true });
   }
 
-  // ✅ Silent by default: no UI = no flicker
   if (step !== "error") return null;
 
-  // ✅ Only show UI on error (debugging)
   return (
     <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--bg)", padding: 16 }}>
       <div
@@ -169,22 +144,6 @@ export default function AuthCallbackPage() {
         </div>
 
         <div style={{ padding: 14, display: "grid", gap: 12 }}>
-          <div
-            style={{
-              borderRadius: 14,
-              border: "1px dashed var(--border)",
-              background: "rgba(255,255,255,0.65)",
-              padding: 12,
-              fontSize: 12,
-              color: "var(--muted)",
-            }}
-          >
-            <div style={{ fontWeight: 900, color: "var(--text)" }}>Debug</div>
-            <pre style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-{JSON.stringify({ step, ...debug }, null, 2)}
-            </pre>
-          </div>
-
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button
               onClick={() => nav("/auth", { replace: true })}
