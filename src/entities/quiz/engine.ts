@@ -1,7 +1,7 @@
 // FILE: src/entities/quiz/engine.ts
 
 import type { QuizMode, QuizTarget } from "./model";
-import type { QuizSession, LockedFill } from "./session";
+import type { QuizSession } from "./session";
 import { makeEmptySession } from "./session";
 
 function normId(id: any) {
