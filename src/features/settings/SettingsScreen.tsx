@@ -124,13 +124,6 @@ export default function SettingsScreen() {
                 {auth.user?.id ?? "—"}
               </span>
             </div>
-
-            <div style={{ color: "var(--muted)" }}>
-              Onboarding:{" "}
-              <b style={{ color: "var(--text)" }}>
-                {auth.profile?.onboardedAt ? "✅ abgeschlossen" : "—"}
-              </b>
-            </div>
           </div>
 
           {err && (
@@ -191,18 +184,6 @@ export default function SettingsScreen() {
 
               {saved && <div style={{ fontSize: 13, color: "var(--muted)" }}>✅ Gespeichert</div>}
             </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div style={{ fontWeight: 900 }}>Nächste Schritte (optional)</div>
-          <div style={{ marginTop: 8, fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>
-            <ul style={{ margin: 0, paddingLeft: 18 }}>
-              <li>Avatar Upload (Storage) + Anzeige im Header</li>
-              <li>Email ändern</li>
-              <li>Account löschen (mit Storage Cleanup via Edge Function)</li>
-              <li>Mehrere Login-Provider verwalten</li>
-            </ul>
           </div>
         </Card>
       </div>

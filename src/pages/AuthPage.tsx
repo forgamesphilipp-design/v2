@@ -164,23 +164,6 @@ export default function AuthPage() {
             >
               Weiter mit Google
             </button>
-
-            <button
-              onClick={() => void oauth("apple")}
-              disabled={busy}
-              style={{
-                borderRadius: 999,
-                padding: "10px 12px",
-                border: "1px solid var(--border)",
-                background: "#0B1220",
-                color: "#fff",
-                cursor: busy ? "not-allowed" : "pointer",
-                fontWeight: 900,
-                boxShadow: "0 10px 22px rgba(15,23,42,.12)",
-              }}
-            >
-              Weiter mit Apple
-            </button>
           </div>
 
           {/* Divider */}

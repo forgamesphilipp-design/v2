@@ -140,7 +140,7 @@ export default function QuizScreen() {
           </div>
 
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
-            <Button onClick={q.backToModes}>Abbrechen</Button>
+            <Button onClick={q.backToModes}>Anderes Quiz wählen</Button>
             <Button variant="primary" onClick={q.begin}>
               Start
             </Button>
