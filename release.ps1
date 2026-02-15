@@ -27,4 +27,5 @@ git add .
 git commit -m $newTag
 git tag $newTag
 git push
-git push --tags
+git push origin $newTag
+
