@@ -41,9 +41,9 @@ export default function HomePage() {
 
       <Modal open={infoOpen} title="Info" onClose={() => setInfoOpen(false)}>
         <div style={{ display: "grid", gap: 10 }}>
-          <div style={{ fontWeight: 900 }}>Was wir gerade bauen</div>
+          <div style={{ fontWeight: 900 }}>Infotitel</div>
           <div style={{ color: "var(--muted)", fontSize: 13, lineHeight: 1.5 }}>
-            Die App befindet sich aktuell in einer sehr frühen Entwicklungsphase. Im Moment arbeiten wir an den Kernfunktionen wie dem Quiz, um die Grundlagen zu schaffen. Sobald diese stabil sind, werden wir weitere Funktionen hinzufügen und die App kontinuierlich verbessern.
+            info
           </div>
         </div>
       </Modal>

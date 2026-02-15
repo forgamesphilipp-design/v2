@@ -149,10 +149,7 @@ export default function SettingsScreen() {
 
         <Card>
           <div style={{ fontWeight: 900 }}>Profil</div>
-          <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13, lineHeight: 1.4 }}>
-            Anzeigename wird in der App verwendet (Header etc.). Avatar kommt später.
-          </div>
-
+          
           <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
             <div style={{ fontSize: 12, fontWeight: 900, color: "var(--muted)" }}>Anzeigename</div>
 

@@ -54,7 +54,7 @@ export default function OnboardingScreen() {
         <Card>
           <div style={{ fontSize: 16, fontWeight: 900 }}>Willkommen!</div>
           <div style={{ marginTop: 6, fontSize: 13, color: "var(--muted)", lineHeight: 1.4 }}>
-            Kurz Profil einrichten – dann geht’s los.
+            Kurz Profil einrichten.
           </div>
 
           <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
@@ -62,7 +62,7 @@ export default function OnboardingScreen() {
             <input
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="z.B. Phil"
+              placeholder="z.B. Max"
               autoComplete="nickname"
               style={{
                 width: "100%",
@@ -93,7 +93,7 @@ export default function OnboardingScreen() {
             </div>
 
             <div style={{ marginTop: 10, fontSize: 12, color: "var(--muted)", lineHeight: 1.45 }}>
-              Hinweis: Du kannst das später in den Settings ändern (kommt in Schritt 7).
+              Hinweis: Du kannst das später in den Settings ändern.
             </div>
           </div>
         </Card>

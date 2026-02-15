@@ -5,7 +5,7 @@ import { Card } from "../../shared/ui";
 
 export default function LearnScreen() {
   return (
-    <AppLayout title="Learn" subtitle="Lernen & Inhalte (später)" backTo="/">
+    <AppLayout title="Learn" subtitle="Lernen & Inhalte" backTo="/">
       <Card>
         <div style={{ fontWeight: 900 }}>Learn</div>
         <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
