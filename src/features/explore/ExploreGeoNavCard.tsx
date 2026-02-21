@@ -1,6 +1,5 @@
 // FILE: src/features/explore/ExploreGeoNavCard.tsx
 
-import { useState } from "react";
 import { Button, Card } from "../../shared/ui";
 import type { GeoId } from "../../entities/geo/ids";
 import type { GeoNode } from "../../entities/geo/model";
@@ -8,11 +7,9 @@ import type { GeoNode } from "../../entities/geo/model";
 type Props = {
   breadcrumb: GeoNode[];
   current: GeoNode;
-
   canGoBack: boolean;
   onBack: () => void;
   onGoTo: (id: GeoId) => void;
-
   onEnsureChildren?: () => void;
   ensureBusy?: boolean;
 };
@@ -33,7 +30,6 @@ export default function ExploreGeoNavCard({
   onEnsureChildren,
   ensureBusy = false,
 }: Props) {
-  const [open, setOpen] = useState(true);
 
   const showEnsure =
     Boolean(onEnsureChildren) &&
@@ -41,7 +37,6 @@ export default function ExploreGeoNavCard({
 
   return (
     <Card padding={0} style={{ overflow: "hidden" }}>
-      {/* Header (immer sichtbar) */}
       <div
         style={{
           padding: 14,
@@ -49,24 +44,9 @@ export default function ExploreGeoNavCard({
           justifyContent: "space-between",
           alignItems: "center",
           gap: 12,
-          cursor: "pointer",
-          userSelect: "none",
         }}
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 900,
-              transform: open ? "rotate(90deg)" : "rotate(0deg)",
-              transition: "transform 160ms ease",
-            }}
-          >
-            ▶
-          </div>
-
           <div>
             <div style={{ fontWeight: 950 }}>Navigation</div>
             <div style={{ fontSize: 12, color: "var(--muted)" }}>
@@ -75,17 +55,8 @@ export default function ExploreGeoNavCard({
           </div>
         </div>
       </div>
-
-      {/* Animated content */}
-      <div
-        style={{
-          maxHeight: open ? 1000 : 0,
-          opacity: open ? 1 : 0,
-          overflow: "hidden",
-          transition: "max-height 260ms ease, opacity 180ms ease",
-        }}
-      >
         <div style={{ padding: 16, paddingTop: 0, display: "grid", gap: 12 }}>
+
           {/* Breadcrumb */}
           <div>
             <div style={{ fontSize: 12, fontWeight: 900, color: "var(--muted)" }}>
@@ -103,25 +74,13 @@ export default function ExploreGeoNavCard({
               {breadcrumb.map((n, idx) => {
                 const isLast = idx === breadcrumb.length - 1;
                 return (
-                  <button
+                  <Button
                     key={String(n.id)}
                     onClick={() => !isLast && onGoTo(n.id as GeoId)}
                     disabled={isLast}
-                    style={{
-                      borderRadius: 999,
-                      padding: "6px 10px",
-                      border: "1px solid var(--border)",
-                      background: isLast
-                        ? "rgba(172,0,0,0.10)"
-                        : "var(--bg)",
-                      cursor: isLast ? "default" : "pointer",
-                      fontWeight: isLast ? 950 : 900,
-                      fontSize: 12,
-                      color: isLast ? "var(--text)" : "var(--muted)",
-                    }}
                   >
                     {n.name}
-                  </button>
+                  </Button>
                 );
               })}
             </div>
@@ -144,7 +103,6 @@ export default function ExploreGeoNavCard({
             )}
           </div>
         </div>
-      </div>
     </Card>
   );
 }

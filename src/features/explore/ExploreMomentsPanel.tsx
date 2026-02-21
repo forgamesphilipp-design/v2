@@ -61,8 +61,6 @@ function MomentRow({ index, style, items }: RowComponentProps<RowProps>) {
 }
 
 export default function ExploreMomentsPanel() {
-  const [open, setOpen] = useState(true);
-
   const [moments, setMoments] = useState<Moment[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -96,33 +94,17 @@ export default function ExploreMomentsPanel() {
   return (
     <>
       <Card padding={0} style={{ overflow: "hidden" }}>
-        {/* Header (immer sichtbar) */}
-        <div
-          style={{
-            padding: 14,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 12,
-            cursor: "pointer",
-            userSelect: "none",
-          }}
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 900,
-                transform: open ? "rotate(90deg)" : "rotate(0deg)",
-                transition: "transform 160ms ease",
-                flex: "0 0 auto",
-              }}
-            >
-              ▶
-            </div>
-
+        <div style={{ padding: 16, display: "grid", gap: 12 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              minWidth: 0,
+              flexWrap: "wrap",
+            }}
+          >
             <div style={{ minWidth: 0 }}>
               <div style={{ fontWeight: 950 }}>Moments</div>
               <div
@@ -138,9 +120,7 @@ export default function ExploreMomentsPanel() {
                 {headerMeta}
               </div>
             </div>
-          </div>
 
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             {!camera.file && (
               <Button
                 variant="primary"
@@ -154,46 +134,36 @@ export default function ExploreMomentsPanel() {
               </Button>
             )}
           </div>
-        </div>
 
-        {/* Animated content */}
-        <div
-          style={{
-            maxHeight: open ? 1200 : 0,
-            opacity: open ? 1 : 0,
-            overflow: "hidden",
-            transition: "max-height 260ms ease, opacity 180ms ease",
-          }}
-        >
-          <div style={{ padding: 16, paddingTop: 0, display: "grid", gap: 12 }}>
-            {!camera.file ? (
-              <div style={{ color: "var(--muted)", fontSize: 13 }}>
-                Native Kamera · Vorschau · Private Storage (Signed URLs)
-              </div>
-            ) : null}
-
-            <div
-              style={{
-                borderRadius: 16,
-                border: "1px solid var(--border)",
-                background: "var(--bg)",
-                padding: 8,
-                height: 420,
-                overflow: "hidden",
-              }}
-            >
-              {moments.length === 0 ? (
-                <div style={{ padding: 12, color: "var(--muted)", fontSize: 13 }}>Noch keine Moments.</div>
-              ) : open ? (
-                <List<RowProps>
-                  rowComponent={MomentRow}
-                  rowCount={moments.length}
-                  rowHeight={92}
-                  rowProps={{ items: moments }}
-                  style={{ height: 420, width: "100%" }}
-                />
-              ) : null}
+          {!camera.file ? (
+            <div style={{ color: "var(--muted)", fontSize: 13 }}>
+              Native Kamera · Vorschau · Private Storage (Signed URLs)
             </div>
+          ) : null}
+
+          <div
+            style={{
+              borderRadius: 16,
+              border: "1px solid var(--border)",
+              background: "var(--bg)",
+              padding: 8,
+              height: 420,
+              overflow: "hidden",
+            }}
+          >
+            {moments.length === 0 ? (
+              <div style={{ padding: 12, color: "var(--muted)", fontSize: 13 }}>
+                Noch keine Moments.
+              </div>
+            ) : (
+              <List<RowProps>
+                rowComponent={MomentRow}
+                rowCount={moments.length}
+                rowHeight={92}
+                rowProps={{ items: moments }}
+                style={{ height: 420, width: "100%" }}
+              />
+            )}
           </div>
         </div>
       </Card>
