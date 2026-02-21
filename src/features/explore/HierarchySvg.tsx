@@ -306,63 +306,69 @@ export default function HierarchySvg({
         }}
       >
         {rendered.map(({ id, d, nodeId, props }) => {
-          const lockedKey = lockedFills?.[id] ?? null;
-          const isLocked = Boolean(lockedKey);
+        const lockedKey = lockedFills?.[id] ?? null;
+        const isLocked = Boolean(lockedKey);
 
-          const isAllowedByHint = !lockActive || !lockToId || id === lockToId;
-          const isAllowed = isAllowedByHint && !isLocked;
+        const isAllowedByHint = !lockActive || !lockToId || id === lockToId;
+        const isAllowed = isAllowedByHint && !isLocked;
 
-          const isHover = isAllowed && hovered === id && isHoverCapableRef.current;
+        const isHover = isAllowed && hovered === id && isHoverCapableRef.current;
 
-          const baseClickable = level === "country" || level === "canton" || level === "district";
-          const clickable = baseClickable && isAllowed;
+        const baseClickable = level === "country" || level === "canton" || level === "district";
+        const clickable = baseClickable && isAllowed;
 
-          const lockedFill = lockedKey ? fillFromLocked(lockedKey) : null;
+        const lockedFill = lockedKey ? fillFromLocked(lockedKey) : null;
 
-          return (
-            <path
-              key={id}
-              d={d}
-              fill={
-                lockedFill
-                  ? lockedFill
-                  : flashId === id
-                  ? flashColor === "red"
-                    ? "#c00000"
-                    : flashColor === "green"
-                    ? "#16a34a"
-                    : "#2563eb"
-                  : !isAllowedByHint
-                  ? "#e6e6e6"
-                  : isHover
-                  ? "#eee"
-                  : "#b2cdff"
-              }
-              stroke={!isAllowedByHint ? "rgba(0,0,0,0.25)" : "#000"}
-              strokeWidth={1}
-              onPointerEnter={(e) => {
-                if (!clickable) return;
-                if (e.pointerType !== "mouse") return;
-                onEnter(id);
-              }}
-              onPointerLeave={(e) => {
-                if (!clickable) return;
-                if (e.pointerType !== "mouse") return;
-                onLeave(id);
-              }}
-              onClick={() => {
-                if (!clickable) return;
+        // ✅ NEW: disable fill animation for click-feedback states (locked or flash)
+        const disableFillAnim = Boolean(lockedKey) || flashId === id;
 
-                setDebugSelected({ level, scopeId, id, nodeId, props });
-                onSelectNode(nodeId);
-              }}
-              style={{
-                cursor: clickable ? "pointer" : "default",
-                transition: "fill 120ms ease, stroke-width 120ms ease, stroke 120ms ease",
-              }}
-            />
-          );
-        })}
+        return (
+          <path
+            key={id}
+            d={d}
+            fill={
+              lockedFill
+                ? lockedFill
+                : flashId === id
+                ? flashColor === "red"
+                  ? "#c00000"
+                  : flashColor === "green"
+                  ? "#16a34a"
+                  : "#2563eb"
+                : !isAllowedByHint
+                ? "#e6e6e6"
+                : isHover
+                ? "#eee"
+                : "#b2cdff"
+            }
+            stroke={!isAllowedByHint ? "rgba(0,0,0,0.25)" : "#000"}
+            strokeWidth={1}
+            onPointerEnter={(e) => {
+              if (!clickable) return;
+              if (e.pointerType !== "mouse") return;
+              onEnter(id);
+            }}
+            onPointerLeave={(e) => {
+              if (!clickable) return;
+              if (e.pointerType !== "mouse") return;
+              onLeave(id);
+            }}
+            onClick={() => {
+              if (!clickable) return;
+
+              setDebugSelected({ level, scopeId, id, nodeId, props });
+              onSelectNode(nodeId);
+            }}
+            style={{
+              cursor: clickable ? "pointer" : "default",
+              // ✅ hover animiert, click/flash/locked instant
+              transition: disableFillAnim
+                ? "stroke-width 120ms ease, stroke 120ms ease"
+                : "fill 120ms ease, stroke-width 120ms ease, stroke 120ms ease",
+            }}
+          />
+        );
+      })}
 
         {/* Cluster Pins */}
         {pinPoints.map((p) => (

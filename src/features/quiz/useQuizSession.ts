@@ -239,16 +239,15 @@ export function useQuizSession() {
         // ✅ NEXT: index sofort hochsetzen -> "Wo ist ...?" updated sofort
         const nextIndex = index + 1;
       
-        // Wenn fertig: Timer stoppen und Done nach kurzem Feedback
         if (nextIndex >= targets.length) {
           stopStopwatch();
-      
-          timerRef.current = window.setTimeout(() => {
-            setFlashId(null);
-            setFlashColor(null);
-            setPhase("done");
-          }, 520);
-      
+          clearTimer();
+        
+          // optional: flash sofort weg (damit modal clean ist)
+          setFlashId(null);
+          setFlashColor(null);
+        
+          setPhase("done");
           return;
         }
       
